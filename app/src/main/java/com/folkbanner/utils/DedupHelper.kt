@@ -1,27 +1,23 @@
 package com.folkbanner.utils
 
 class DedupHelper {
-    
+
     private val urlSet = HashSet<String>()
-    
+
     @Synchronized
-    fun isDuplicate(url: String): Boolean {
-        val hash = url.hashCode().toString()
-        return urlSet.contains(hash)
-    }
-    
+    fun isDuplicate(url: String): Boolean = urlSet.contains(url)
+
     @Synchronized
     fun add(url: String) {
-        val hash = url.hashCode().toString()
-        urlSet.add(hash)
+        urlSet.add(url)
     }
-    
+
     @Synchronized
     fun clear() {
         urlSet.clear()
     }
-    
+
     @Synchronized
     fun size(): Int = urlSet.size
-    
+
 }

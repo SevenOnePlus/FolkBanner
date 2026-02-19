@@ -137,23 +137,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadImage(url: String) {
-        lifecycleScope.launch {
-            try {
-                val request = ImageRequest.Builder(this@MainActivity)
-                    .data(url)
-                    .target(binding.imageView)
-                    .crossfade(true)
-                    .build()
+        val request = ImageRequest.Builder(this)
+            .data(url)
+            .target(binding.imageView)
+            .crossfade(true)
+            .build()
 
-                imageLoader.enqueue(request)
-            } catch (e: Exception) {
-                Snackbar.make(
-                    binding.root,
-                    getString(R.string.load_failed),
-                    Snackbar.LENGTH_SHORT
-                ).show()
-            }
-        }
+        imageLoader.enqueue(request)
     }
 
     private fun downloadWallpaper(url: String) {
@@ -192,16 +182,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         val imageView = dialogView.findViewById<android.widget.ImageView>(R.id.ivAvatar)
-        lifecycleScope.launch {
-            try {
-                val request = ImageRequest.Builder(this@MainActivity)
-                    .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
-                    .target(imageView)
-                    .build()
-                imageLoader.enqueue(request)
-            } catch (e: Exception) {
-            }
-        }
+        val request = ImageRequest.Builder(this)
+            .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
+            .target(imageView)
+            .build()
+        imageLoader.enqueue(request)
 
         dialog.show()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
