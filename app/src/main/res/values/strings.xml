@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">FolkBanner</string>
+    <string name="download">Download</string>
+    <string name="downloading">Downloading…</string>
+    <string name="download_success">Saved to Gallery</string>
+    <string name="download_failed">Download Failed</string>
+    <string name="permission_required">Storage permission required to download</string>
+    <string name="loading">Loading…</string>
+    <string name="load_failed">Load Failed</string>
+    <string name="retry">Retry</string>
+    <string name="refresh">Refresh</string>
+    <string name="about">About</string>
+    <string name="author_name">Matsuzaka Yuki</string>
+    <string name="author_title">Author</string>
+    <string name="author_avatar">Author Avatar</string>
+    <string name="view_on_github">View on GitHub</string>
+    <string name="github_url">https://github.com/matsuzaka-yuki/FolkBanner</string>
+    <string name="app_description">A simple wallpaper download app</string>
+</resources>

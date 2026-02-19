@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">FolkBanner</string>
+    <string name="download">下载</string>
+    <string name="downloading">下载中…</string>
+    <string name="download_success">已保存到相册</string>
+    <string name="download_failed">下载失败</string>
+    <string name="permission_required">需要存储权限才能下载</string>
+    <string name="loading">加载中…</string>
+    <string name="load_failed">加载失败</string>
+    <string name="retry">重试</string>
+    <string name="refresh">刷新</string>
+    <string name="about">关于</string>
+    <string name="author_name">Matsuzaka Yuki</string>
+    <string name="author_title">作者</string>
+    <string name="author_avatar">作者头像</string>
+    <string name="view_on_github">在 GitHub 上查看</string>
+    <string name="github_url">https://github.com/matsuzaka-yuki/FolkBanner</string>
+    <string name="app_description">一个简单的壁纸下载软件</string>
+</resources>
