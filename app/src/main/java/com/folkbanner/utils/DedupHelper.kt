@@ -3,7 +3,6 @@ package com.folkbanner.utils
 class DedupHelper {
     
     private val urlSet = HashSet<String>()
-    private val urlHashList = mutableListOf<String>()
     
     @Synchronized
     fun isDuplicate(url: String): Boolean {
@@ -15,13 +14,11 @@ class DedupHelper {
     fun add(url: String) {
         val hash = url.hashCode().toString()
         urlSet.add(hash)
-        urlHashList.add(hash)
     }
     
     @Synchronized
     fun clear() {
         urlSet.clear()
-        urlHashList.clear()
     }
     
     @Synchronized
