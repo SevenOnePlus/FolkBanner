@@ -65,6 +65,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun showCardWithAnimation(view: View) {
         if (view.isVisible) return
         
+        view.animate().cancel()
         view.alpha = 0f
         view.scaleY = 0.8f
         view.visibility = View.VISIBLE
@@ -74,12 +75,14 @@ class SettingsActivity : AppCompatActivity() {
             .scaleY(1f)
             .setDuration(300)
             .setInterpolator(android.view.animation.OvershootInterpolator(0.8f))
+            .setListener(null)
             .start()
     }
     
     private fun hideCardWithAnimation(view: View) {
         if (!view.isVisible) return
         
+        view.animate().cancel()
         view.animate()
             .alpha(0f)
             .scaleY(0.8f)
