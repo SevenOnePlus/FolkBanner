@@ -17,6 +17,8 @@
     <string name="upstream_api_desc">Use the original API source</string>
     <string name="downstream_api">Downstream API</string>
     <string name="downstream_api_desc">Use the alternative API source</string>
+    <string name="r18_option">R18+</string>
+    <string name="r18_option_desc">Enable adult content (requires Downstream API)</string>
     <string name="author_name">Matsuzaka Yuki</string>
     <string name="author_title">毎日を楽しく過ごしましょう</string>
     <string name="author_avatar">Author Avatar</string>

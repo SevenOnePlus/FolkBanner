@@ -10,6 +10,7 @@ class SettingsManager(context: Context) {
     companion object {
         private const val PREFS_NAME = "folk_banner_settings"
         private const val KEY_USE_UPSTREAM_API = "use_upstream_api"
+        private const val KEY_R18_ENABLED = "r18_enabled"
         
         @Volatile
         private var INSTANCE: SettingsManager? = null
@@ -24,5 +25,9 @@ class SettingsManager(context: Context) {
     var useUpstreamApi: Boolean
         get() = prefs.getBoolean(KEY_USE_UPSTREAM_API, true)
         set(value) = prefs.edit().putBoolean(KEY_USE_UPSTREAM_API, value).apply()
+
+    var r18Enabled: Boolean
+        get() = prefs.getBoolean(KEY_R18_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_R18_ENABLED, value).apply()
 
 }

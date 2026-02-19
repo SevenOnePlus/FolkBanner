@@ -17,6 +17,8 @@
     <string name="upstream_api_desc">使用原始 API 來源</string>
     <string name="downstream_api">下游 API</string>
     <string name="downstream_api_desc">使用備用 API 來源</string>
+    <string name="r18_option">R18+</string>
+    <string name="r18_option_desc">啟用成人內容 (需要使用下游 API)</string>
     <string name="author_name">Matsuzaka Yuki</string>
     <string name="author_title">毎日を楽しく過ごしましょう</string>
     <string name="author_avatar">作者頭像</string>

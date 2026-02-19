@@ -17,6 +17,8 @@
     <string name="upstream_api_desc">元の API ソースを使用</string>
     <string name="downstream_api">下流 API</string>
     <string name="downstream_api_desc">代替 API ソースを使用</string>
+    <string name="r18_option">R18+</string>
+    <string name="r18_option_desc">アダルトコンテンツを有効にする (下流 API が必要)</string>
     <string name="author_name">Matsuzaka Yuki</string>
     <string name="author_title">毎日を楽しく過ごしましょう</string>
     <string name="author_avatar">作者アバター</string>

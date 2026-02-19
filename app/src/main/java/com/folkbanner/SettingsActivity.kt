@@ -1,6 +1,7 @@
 package com.folkbanner
 
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.folkbanner.databinding.ActivitySettingsBinding
 import com.folkbanner.utils.SettingsManager
@@ -35,16 +36,27 @@ class SettingsActivity : AppCompatActivity() {
             settingsManager.useUpstreamApi = false
             updateRadioButtons()
         }
+
+        binding.switchR18.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.r18Enabled = isChecked
+        }
     }
 
     private fun loadSettings() {
         updateRadioButtons()
+        binding.switchR18.isChecked = settingsManager.r18Enabled
     }
 
     private fun updateRadioButtons() {
         val useUpstream = settingsManager.useUpstreamApi
         binding.radioUpstream.isChecked = useUpstream
         binding.radioDownstream.isChecked = !useUpstream
+        
+        if (useUpstream) {
+            binding.cardR18.visibility = View.GONE
+        } else {
+            binding.cardR18.visibility = View.VISIBLE
+        }
     }
 
 }
