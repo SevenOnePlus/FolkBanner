@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">FolkBanner</string>
+    <string name="wallpaper">Wallpaper</string>
     <string name="download">Download</string>
     <string name="downloading">Downloading…</string>
     <string name="download_success">Saved to Gallery</string>
@@ -10,6 +11,12 @@
     <string name="retry">Retry</string>
     <string name="refresh">Refresh</string>
     <string name="about">About</string>
+    <string name="settings">Settings</string>
+    <string name="api_source">API Source</string>
+    <string name="upstream_api">Upstream API</string>
+    <string name="upstream_api_desc">Use the original API source</string>
+    <string name="downstream_api">Downstream API</string>
+    <string name="downstream_api_desc">Use the alternative API source</string>
     <string name="author_name">Matsuzaka Yuki</string>
     <string name="author_title">毎日を楽しく過ごしましょう</string>
     <string name="author_avatar">Author Avatar</string>

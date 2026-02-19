@@ -9,11 +9,13 @@ import com.folkbanner.data.model.WallpaperApi
 import com.folkbanner.data.model.WallpaperItem
 import com.folkbanner.data.repository.WallpaperRepository
 import com.folkbanner.utils.Constants
+import com.folkbanner.utils.SettingsManager
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = WallpaperRepository()
+    private val settingsManager = SettingsManager.getInstance(application)
 
     private val _apis = MutableLiveData<List<WallpaperApi>>()
     val apis: LiveData<List<WallpaperApi>> = _apis
@@ -33,12 +35,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadApis()
     }
 
+    private fun getApiUrl(): String {
+        return if (settingsManager.useUpstreamApi) {
+            Constants.UPSTREAM_API_URL
+        } else {
+            Constants.DOWNSTREAM_API_URL
+        }
+    }
+
     fun loadApis() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
-                val apiList = repository.loadApis(Constants.BASE_API_URL)
+                val apiList = repository.loadApis(getApiUrl())
                 _apis.value = apiList
                 if (apiList.isNotEmpty()) {
                     loadRandomWallpaper(0)

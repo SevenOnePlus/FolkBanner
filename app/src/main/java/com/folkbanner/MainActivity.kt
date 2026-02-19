@@ -15,21 +15,24 @@ import coil.request.ImageRequest
 import com.folkbanner.databinding.ActivityMainBinding
 import com.folkbanner.ui.viewmodel.MainViewModel
 import com.folkbanner.utils.DownloadManager
+import com.folkbanner.utils.SettingsManager
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.launch
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
     private lateinit var imageLoader: ImageLoader
+    private lateinit var settingsManager: SettingsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        settingsManager = SettingsManager.getInstance(this)
         initImageLoader()
         initViews()
         observeData()
@@ -61,6 +64,10 @@ class MainActivity : AppCompatActivity() {
             viewModel.currentWallpaper.value?.let { item ->
                 downloadWallpaper(item.url)
             }
+        }
+
+        binding.btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -113,6 +120,19 @@ class MainActivity : AppCompatActivity() {
                 binding.errorLayout.visibility = View.GONE
                 binding.imageView.visibility = View.VISIBLE
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateTabLayoutVisibility()
+    }
+
+    private fun updateTabLayoutVisibility() {
+        if (settingsManager.useUpstreamApi) {
+            binding.tabLayout.visibility = View.VISIBLE
+        } else {
+            binding.tabLayout.visibility = View.GONE
         }
     }
 
@@ -180,7 +200,6 @@ class MainActivity : AppCompatActivity() {
                     .build()
                 imageLoader.enqueue(request)
             } catch (e: Exception) {
-                // 忽略加载错误
             }
         }
 

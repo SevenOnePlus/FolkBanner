@@ -17,8 +17,20 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="@string/app_name"
+            app:title="@string/wallpaper"
             app:titleCentered="true">
+
+            <TextView
+                android:id="@+id/btnSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:layout_marginStart="16dp"
+                android:text="@string/settings"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="16sp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="8dp" />
 
             <ImageButton
                 android:id="@+id/btnAbout"
@@ -37,6 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
+            android:visibility="gone"
             app:tabMode="scrollable"
             app:tabIndicatorFullWidth="false"
             app:tabRippleColor="?attr/colorPrimaryContainer" />
