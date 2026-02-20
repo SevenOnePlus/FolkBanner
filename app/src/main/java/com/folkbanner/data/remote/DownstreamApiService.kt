@@ -2,6 +2,7 @@ package com.folkbanner.data.remote
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Base64
 import com.folkbanner.utils.AppLogger
 import com.folkbanner.utils.NativeRandomGenerator
 import kotlinx.coroutines.Dispatchers
@@ -48,8 +49,31 @@ class DownstreamApiService {
         AppLogger.log("下载完成, 大小: ${base64Content.length} 字符")
         
         AppLogger.log("开始Base64解码...")
-        val imageData = NativeRandomGenerator.decodeBase64(base64Content)
-        if (imageData == null) {
+        AppLogger.log("内容前50字符: ${base64Content.take(50)}")
+        
+        val cleanBase64 = cleanBase64String(base64Content)
+        AppLogger.log("清理后大小: ${cleanBase64.length} 字符")
+        
+        val imageData = try {
+            NativeRandomGenerator.decodeBase64(cleanBase64).also {
+                AppLogger.log("Native解码结果: ${if (it != null) "${it.size}字节" else "null"}")
+            }
+        } catch (e: Exception) {
+            AppLogger.log("Native解码异常: ${e.message}")
+            null
+        } ?: run {
+            AppLogger.log("尝试Android Base64解码...")
+            try {
+                Base64.decode(cleanBase64, Base64.DEFAULT).also {
+                    AppLogger.log("Android解码成功: ${it.size}字节")
+                }
+            } catch (e: Exception) {
+                AppLogger.log("Android解码异常: ${e.message}")
+                null
+            }
+        }
+        
+        if (imageData == null || imageData.isEmpty()) {
             AppLogger.log("错误: Base64解码失败")
             throw Exception("Failed to decode base64")
         }
@@ -58,7 +82,7 @@ class DownstreamApiService {
         AppLogger.log("开始生成Bitmap...")
         val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
         if (bitmap == null) {
-            AppLogger.log("错误: Bitmap生成失败")
+            AppLogger.log("错误: Bitmap生成失败，图片数据可能损坏")
             throw Exception("Failed to decode image")
         }
         AppLogger.log("成功! 图片尺寸: ${bitmap.width}x${bitmap.height}")
@@ -70,6 +94,19 @@ class DownstreamApiService {
             url = file.downloadUrl,
             bitmap = bitmap
         )
+    }
+
+    private fun cleanBase64String(input: String): String {
+        var result = input.trim()
+        
+        val commaIndex = result.indexOf(',')
+        if (commaIndex >= 0 && commaIndex < 50) {
+            result = result.substring(commaIndex + 1)
+        }
+        
+        result = result.replace(Regex("[\\s\\r\\n]"), "")
+        
+        return result
     }
 
     private suspend fun fetchFileList(): List<NormalFile> = withContext(Dispatchers.IO) {
