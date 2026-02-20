@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
     private lateinit var imageLoader: ImageLoader
     private lateinit var settingsManager: SettingsManager
+    private var lastApiMode = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         settingsManager = SettingsManager.getInstance(this)
+        lastApiMode = settingsManager.useUpstreamApi
         initImageLoader()
         initViews()
         observeData()
@@ -110,7 +112,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        binding.tabLayout.visibility = if (settingsManager.useUpstreamApi) View.VISIBLE else View.GONE
+        val currentApiMode = settingsManager.useUpstreamApi
+        if (currentApiMode != lastApiMode) {
+            lastApiMode = currentApiMode
+            viewModel.loadApis()
+        }
+        binding.tabLayout.visibility = if (currentApiMode) View.VISIBLE else View.GONE
     }
 
     private fun loadImage(url: String) {

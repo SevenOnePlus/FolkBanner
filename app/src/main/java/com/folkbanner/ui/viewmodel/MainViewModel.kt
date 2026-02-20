@@ -44,15 +44,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 try {
                     val apiList = repository.loadApis(Constants.UPSTREAM_API_URL)
                     _apis.value = apiList
-                    if (apiList.isNotEmpty()) loadRandomWallpaper(0)
+                    if (apiList.isNotEmpty()) {
+                        _isLoading.value = false
+                        loadRandomWallpaper(0)
+                    } else {
+                        _isLoading.value = false
+                    }
+                } catch (e: Exception) {
+                    _error.value = e.message
+                    _isLoading.value = false
+                }
+            } else {
+                _apis.value = emptyList()
+                try {
+                    val item = repository.fetchDownstreamWallpaper()
+                    _currentWallpaper.value = item ?: throw Exception("Failed to load wallpaper")
                 } catch (e: Exception) {
                     _error.value = e.message
                 } finally {
                     _isLoading.value = false
                 }
-            } else {
-                _apis.value = emptyList()
-                loadDownstreamWallpaper()
             }
         }
     }
