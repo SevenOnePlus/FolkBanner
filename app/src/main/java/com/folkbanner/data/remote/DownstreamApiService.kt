@@ -48,43 +48,75 @@ class DownstreamApiService {
         val base64Content = downloadFileContent(file.downloadUrl)
         AppLogger.log("下载完成, 大小: ${base64Content.length} 字符")
         
-        AppLogger.log("开始Base64解码...")
-        AppLogger.log("内容前50字符: ${base64Content.take(50)}")
+        AppLogger.log("原始内容前100字符: ${base64Content.take(100)}")
         
         val cleanBase64 = cleanBase64String(base64Content)
         AppLogger.log("清理后大小: ${cleanBase64.length} 字符")
         
-        val imageData = try {
-            NativeRandomGenerator.decodeBase64(cleanBase64).also {
-                AppLogger.log("Native解码结果: ${if (it != null) "${it.size}字节" else "null"}")
+        var imageData: ByteArray? = null
+        var decodeMethod = ""
+        
+        try {
+            AppLogger.log("尝试Native Base64解码...")
+            imageData = NativeRandomGenerator.decodeBase64(cleanBase64)
+            if (imageData != null && imageData.isNotEmpty()) {
+                decodeMethod = "Native"
+                AppLogger.log("Native解码成功: ${imageData.size} 字节")
             }
         } catch (e: Exception) {
             AppLogger.log("Native解码异常: ${e.message}")
-            null
-        } ?: run {
-            AppLogger.log("尝试Android Base64解码...")
+        }
+        
+        if (imageData == null || imageData.isEmpty()) {
             try {
-                Base64.decode(cleanBase64, Base64.DEFAULT).also {
-                    AppLogger.log("Android解码成功: ${it.size}字节")
-                }
+                AppLogger.log("尝试Android Base64解码...")
+                imageData = Base64.decode(cleanBase64, Base64.DEFAULT)
+                decodeMethod = "Android"
+                AppLogger.log("Android解码成功: ${imageData.size} 字节")
             } catch (e: Exception) {
                 AppLogger.log("Android解码异常: ${e.message}")
-                null
             }
         }
         
         if (imageData == null || imageData.isEmpty()) {
-            AppLogger.log("错误: Base64解码失败")
+            AppLogger.log("错误: 所有Base64解码方式都失败")
             throw Exception("Failed to decode base64")
         }
-        AppLogger.log("解码完成, 图片大小: ${imageData.size} 字节")
+        
+        AppLogger.log("解码完成(${decodeMethod}): ${imageData.size} 字节")
+        
+        val firstBytes = imageData.take(16).toByteArray()
+        val hexString = firstBytes.joinToString(" ") { "%02X".format(it) }
+        AppLogger.log("数据头部(hex): $hexString")
+        
+        val mimeType = detectMimeType(imageData)
+        AppLogger.log("检测到格式: $mimeType")
         
         AppLogger.log("开始生成Bitmap...")
         val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+        
         if (bitmap == null) {
-            AppLogger.log("错误: Bitmap生成失败，图片数据可能损坏")
+            AppLogger.log("BitmapFactory返回null，尝试其他方式...")
+            
+            val options = BitmapFactory.Options()
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888
+            val bitmap2 = BitmapFactory.decodeByteArray(imageData, 0, imageData.size, options)
+            
+            if (bitmap2 != null) {
+                AppLogger.log("成功! 图片尺寸: ${bitmap2.width}x${bitmap2.height}")
+                return@withContext RandomFileResult(
+                    index = index,
+                    total = files.size,
+                    filename = file.name,
+                    url = file.downloadUrl,
+                    bitmap = bitmap2
+                )
+            }
+            
+            AppLogger.log("错误: Bitmap生成失败，图片数据可能损坏或格式不支持")
             throw Exception("Failed to decode image")
         }
+        
         AppLogger.log("成功! 图片尺寸: ${bitmap.width}x${bitmap.height}")
         
         RandomFileResult(
@@ -99,14 +131,37 @@ class DownstreamApiService {
     private fun cleanBase64String(input: String): String {
         var result = input.trim()
         
-        val commaIndex = result.indexOf(',')
-        if (commaIndex >= 0 && commaIndex < 50) {
-            result = result.substring(commaIndex + 1)
+        val dataPrefix = result.indexOf("data:")
+        val base64Index = result.indexOf(";base64,")
+        if (dataPrefix >= 0 && base64Index > dataPrefix) {
+            val commaIndex = result.indexOf(',', base64Index)
+            if (commaIndex >= 0) {
+                result = result.substring(commaIndex + 1)
+            }
+        } else {
+            val commaIndex = result.indexOf(',')
+            if (commaIndex >= 0 && commaIndex < 100) {
+                result = result.substring(commaIndex + 1)
+            }
         }
         
         result = result.replace(Regex("[\\s\\r\\n]"), "")
         
         return result
+    }
+
+    private fun detectMimeType(data: ByteArray): String {
+        if (data.size < 4) return "unknown"
+        
+        return when {
+            data[0] == 0x89.toByte() && data[1] == 0x50.toByte() -> "PNG"
+            data[0] == 0xFF.toByte() && data[1] == 0xD8.toByte() -> "JPEG"
+            data[0] == 0x47.toByte() && data[1] == 0x49.toByte() -> "GIF"
+            data[0] == 0x42.toByte() && data[1] == 0x4D.toByte() -> "BMP"
+            data[0] == 0x52.toByte() && data[1] == 0x49.toByte() && 
+            data[2] == 0x46.toByte() && data[3] == 0x46.toByte() -> "WEBP"
+            else -> "unknown (${String(data.copyOf(4))})"
+        }
     }
 
     private suspend fun fetchFileList(): List<NormalFile> = withContext(Dispatchers.IO) {
