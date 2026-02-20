@@ -2,6 +2,7 @@ package com.folkbanner.data.remote
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import com.folkbanner.utils.AppLogger
 import com.folkbanner.utils.NativeRandomGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,34 +26,42 @@ class DownstreamApiService {
         val downloadUrl: String
     )
 
-    suspend fun fetchRandomImage(): Bitmap = withContext(Dispatchers.IO) {
-        val files = fetchFileList()
-        if (files.isEmpty()) throw Exception("No files found")
-        
-        val index = NativeRandomGenerator.generateRandomIndex(files.size)
-        val file = files[index - 1]
-        
-        val base64Content = downloadFileContent(file.downloadUrl)
-        val imageData = NativeRandomGenerator.decodeBase64(base64Content)
-            ?: throw Exception("Failed to decode base64")
-        
-        BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-            ?: throw Exception("Failed to decode image")
-    }
-
     suspend fun fetchRandomNormalImage(): RandomFileResult = withContext(Dispatchers.IO) {
+        AppLogger.log("开始获取文件列表...")
+        
         val files = fetchFileList()
-        if (files.isEmpty()) throw Exception("No files found")
+        AppLogger.log("获取到 ${files.size} 个文件")
+        
+        if (files.isEmpty()) {
+            AppLogger.log("错误: 文件列表为空")
+            throw Exception("No files found")
+        }
         
         val index = NativeRandomGenerator.generateRandomIndex(files.size)
+        AppLogger.log("随机选择: 第 $index 个文件")
+        
         val file = files[index - 1]
+        AppLogger.log("文件名: ${file.name}")
         
+        AppLogger.log("开始下载文件内容...")
         val base64Content = downloadFileContent(file.downloadUrl)
-        val imageData = NativeRandomGenerator.decodeBase64(base64Content)
-            ?: throw Exception("Failed to decode base64")
+        AppLogger.log("下载完成, 大小: ${base64Content.length} 字符")
         
+        AppLogger.log("开始Base64解码...")
+        val imageData = NativeRandomGenerator.decodeBase64(base64Content)
+        if (imageData == null) {
+            AppLogger.log("错误: Base64解码失败")
+            throw Exception("Failed to decode base64")
+        }
+        AppLogger.log("解码完成, 图片大小: ${imageData.size} 字节")
+        
+        AppLogger.log("开始生成Bitmap...")
         val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-            ?: throw Exception("Failed to decode image")
+        if (bitmap == null) {
+            AppLogger.log("错误: Bitmap生成失败")
+            throw Exception("Failed to decode image")
+        }
+        AppLogger.log("成功! 图片尺寸: ${bitmap.width}x${bitmap.height}")
         
         RandomFileResult(
             index = index,
@@ -64,15 +73,21 @@ class DownstreamApiService {
     }
 
     private suspend fun fetchFileList(): List<NormalFile> = withContext(Dispatchers.IO) {
+        AppLogger.log("请求GitHub API...")
         val request = Request.Builder()
             .url(GITHUB_API)
             .header("Accept", "application/vnd.github.v3+json")
             .build()
 
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw Exception("Failed to fetch file list: ${response.code}")
+            if (!response.isSuccessful) {
+                AppLogger.log("API请求失败: ${response.code}")
+                throw Exception("Failed to fetch file list: ${response.code}")
+            }
             
             val body = response.body?.string() ?: throw Exception("Empty response")
+            AppLogger.log("API响应成功")
+            
             val jsonArray = JSONArray(body)
             
             (0 until jsonArray.length()).mapNotNull { i ->
@@ -91,7 +106,10 @@ class DownstreamApiService {
     private fun downloadFileContent(url: String): String {
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw Exception("Failed to download: ${response.code}")
+            if (!response.isSuccessful) {
+                AppLogger.log("下载失败: ${response.code}")
+                throw Exception("Failed to download: ${response.code}")
+            }
             return response.body?.string() ?: throw Exception("Empty content")
         }
     }

@@ -60,13 +60,39 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <ImageView
-        android:id="@+id/imageView"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="centerInside"
-        android:contentDescription="@string/app_name"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/app_name" />
+
+        <ScrollView
+            android:id="@+id/logContainer"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_gravity="bottom"
+            android:background="#E0000000"
+            android:visibility="gone"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/tvLog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="#00FF00"
+                android:textSize="11sp"
+                android:lineSpacingExtra="2dp" />
+
+        </ScrollView>
+
+    </FrameLayout>
 
     <ProgressBar
         android:id="@+id/progressBar"

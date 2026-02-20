@@ -5,6 +5,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +18,7 @@ import coil.memory.MemoryCache
 import coil.request.ImageRequest
 import com.folkbanner.databinding.ActivityMainBinding
 import com.folkbanner.ui.viewmodel.MainViewModel
+import com.folkbanner.utils.AppLogger
 import com.folkbanner.utils.DownloadManager
 import com.folkbanner.utils.SettingsManager
 import com.google.android.material.snackbar.Snackbar
@@ -29,6 +33,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var settingsManager: SettingsManager
     private var lastApiMode = true
 
+    private lateinit var logContainer: ScrollView
+    private lateinit var tvLog: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -36,6 +43,10 @@ class MainActivity : AppCompatActivity() {
 
         settingsManager = SettingsManager.getInstance(this)
         lastApiMode = settingsManager.useUpstreamApi
+        
+        logContainer = findViewById(R.id.logContainer)
+        tvLog = findViewById(R.id.tvLog)
+        
         initImageLoader()
         initViews()
         observeData()
@@ -55,13 +66,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        binding.fabRefresh.setOnClickListener { viewModel.refreshWallpaper() }
+        binding.fabRefresh.setOnClickListener { 
+            viewModel.refreshWallpaper() 
+        }
 
         binding.fabDownload.setOnClickListener {
             viewModel.currentWallpaper.value?.let { downloadWallpaper(it.url) }
         }
 
-        binding.btnSettings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+        binding.btnSettings.setOnClickListener { 
+            startActivity(Intent(this, SettingsActivity::class.java)) 
+        }
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -108,11 +123,29 @@ class MainActivity : AppCompatActivity() {
                 binding.imageView.visibility = View.VISIBLE
             }
         }
+
+        AppLogger.logs.observe(this) { logs ->
+            tvLog.text = logs
+            logContainer.post { logContainer.fullScroll(View.FOCUS_DOWN) }
+            
+            val isDownstream = !settingsManager.useUpstreamApi
+            logContainer.visibility = if (isDownstream && logs.isNotEmpty()) View.VISIBLE else View.GONE
+        }
+
+        AppLogger.toast.observe(this) { message ->
+            message?.let {
+                Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+                AppLogger.clearToast()
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         val currentApiMode = settingsManager.useUpstreamApi
+        
+        logContainer.visibility = if (!currentApiMode) View.VISIBLE else View.GONE
+        
         if (currentApiMode != lastApiMode) {
             lastApiMode = currentApiMode
             viewModel.loadApis()
