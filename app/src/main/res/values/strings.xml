@@ -8,6 +8,7 @@
     <string name="permission_required">Storage permission required to download</string>
     <string name="loading">Loading…</string>
     <string name="load_failed">Load Failed</string>
+    <string name="no_network">No network connection</string>
     <string name="retry">Retry</string>
     <string name="refresh">Refresh</string>
     <string name="about">About</string>

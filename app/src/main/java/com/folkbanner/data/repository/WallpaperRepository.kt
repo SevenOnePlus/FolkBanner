@@ -63,6 +63,11 @@ class WallpaperRepository(
 
     fun clearCurrentApiCache() {
         dedupHelper.clear()
+        currentBitmap?.let {
+            if (!it.isRecycled) {
+                it.recycle()
+            }
+        }
         currentBitmap = null
     }
 }

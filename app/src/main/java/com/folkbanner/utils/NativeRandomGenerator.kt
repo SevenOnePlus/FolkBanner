@@ -1,13 +1,24 @@
 package com.folkbanner.utils
 
 import android.util.Base64
+import android.util.Log
 
 object NativeRandomGenerator {
+
+    private const val TAG = "NativeRandomGenerator"
+    
+    var isNativeLoaded = false
+        private set
 
     init {
         try {
             System.loadLibrary("folkrandom")
-        } catch (_: UnsatisfiedLinkError) { }
+            isNativeLoaded = true
+            Log.d(TAG, "Native库加载成功，使用C++加速")
+        } catch (e: UnsatisfiedLinkError) {
+            isNativeLoaded = false
+            Log.d(TAG, "Native库未找到，使用Kotlin回退实现")
+        }
     }
 
     fun generateRandomIndex(count: Int): Int {

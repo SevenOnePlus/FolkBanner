@@ -1,7 +1,11 @@
 package com.folkbanner
 
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -67,10 +71,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun initViews() {
         binding.fabRefresh.setOnClickListener { 
+            if (!isNetworkAvailable()) {
+                showNetworkError()
+                return@setOnClickListener
+            }
             viewModel.refreshWallpaper() 
         }
 
         binding.fabDownload.setOnClickListener {
+            if (!isNetworkAvailable()) {
+                showNetworkError()
+                return@setOnClickListener
+            }
             viewModel.currentWallpaper.value?.let { downloadWallpaper(it.url) }
         }
 
@@ -88,6 +100,25 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnRetry.setOnClickListener { viewModel.loadApis() }
         binding.btnAbout.setOnClickListener { showAboutDialog() }
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return false
+            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+            return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                   capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } else {
+            @Suppress("DEPRECATION")
+            val networkInfo = connectivityManager.activeNetworkInfo
+            @Suppress("DEPRECATION")
+            return networkInfo?.isConnected == true
+        }
+    }
+
+    private fun showNetworkError() {
+        Snackbar.make(binding.root, getString(R.string.no_network), Snackbar.LENGTH_SHORT).show()
     }
 
     private fun observeData() {
