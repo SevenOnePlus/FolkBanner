@@ -15,11 +15,10 @@ class SettingsManager(context: Context) {
         @Volatile
         private var INSTANCE: SettingsManager? = null
         
-        fun getInstance(context: Context): SettingsManager {
-            return INSTANCE ?: synchronized(this) {
+        fun getInstance(context: Context): SettingsManager =
+            INSTANCE ?: synchronized(this) {
                 INSTANCE ?: SettingsManager(context.applicationContext).also { INSTANCE = it }
             }
-        }
     }
 
     var useUpstreamApi: Boolean
@@ -29,5 +28,4 @@ class SettingsManager(context: Context) {
     var r18Enabled: Boolean
         get() = prefs.getBoolean(KEY_R18_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_R18_ENABLED, value).apply()
-
 }

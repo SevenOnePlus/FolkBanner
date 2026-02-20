@@ -11,39 +11,24 @@ import com.google.gson.reflect.TypeToken
 class ApiService {
 
     companion object {
-        private val client = OkHttpClient.Builder()
-            .followRedirects(true)
-            .build()
-
+        private val client = OkHttpClient.Builder().followRedirects(true).build()
         private val gson = Gson()
     }
 
     suspend fun fetchApiList(apiUrl: String): List<WallpaperApi> = withContext(Dispatchers.IO) {
-        val request = Request.Builder()
-            .url(apiUrl)
-            .build()
-
+        val request = Request.Builder().url(apiUrl).build()
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw Exception("Failed to fetch API list: ${response.code}")
-            }
+            if (!response.isSuccessful) throw Exception("Failed to fetch API list: ${response.code}")
             val body = response.body?.string() ?: throw Exception("Empty response")
-            val type = object : TypeToken<List<WallpaperApi>>() {}.type
-            gson.fromJson(body, type)
+            gson.fromJson(body, object : TypeToken<List<WallpaperApi>>() {}.type)
         }
     }
 
     suspend fun fetchWallpaperUrl(apiUrl: String): String = withContext(Dispatchers.IO) {
-        val request = Request.Builder()
-            .url(apiUrl)
-            .build()
-
+        val request = Request.Builder().url(apiUrl).build()
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw Exception("Failed to fetch wallpaper: ${response.code}")
-            }
+            if (!response.isSuccessful) throw Exception("Failed to fetch wallpaper: ${response.code}")
             response.request.url.toString()
         }
     }
-
 }

@@ -35,44 +35,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadApis()
     }
 
-    private fun getApiUrl(): String {
-        return if (settingsManager.useUpstreamApi) {
-            Constants.UPSTREAM_API_URL
-        } else {
-            Constants.DOWNSTREAM_API_URL
-        }
-    }
-
     fun loadApis() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            try {
-                val apiList = repository.loadApis(getApiUrl())
-                _apis.value = apiList
-                if (apiList.isNotEmpty()) {
-                    loadRandomWallpaper(0)
+            
+            if (settingsManager.useUpstreamApi) {
+                try {
+                    val apiList = repository.loadApis(Constants.UPSTREAM_API_URL)
+                    _apis.value = apiList
+                    if (apiList.isNotEmpty()) loadRandomWallpaper(0)
+                } catch (e: Exception) {
+                    _error.value = e.message
+                } finally {
+                    _isLoading.value = false
                 }
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
+            } else {
+                _apis.value = emptyList()
+                loadDownstreamWallpaper()
             }
+        }
+    }
+
+    private suspend fun loadDownstreamWallpaper() {
+        _isLoading.value = true
+        _error.value = null
+        try {
+            val item = repository.fetchDownstreamWallpaper()
+            _currentWallpaper.value = item ?: throw Exception("Failed to load wallpaper")
+        } catch (e: Exception) {
+            _error.value = e.message
+        } finally {
+            _isLoading.value = false
         }
     }
 
     fun loadRandomWallpaper(apiIndex: Int) {
         currentApiIndex = apiIndex
+        
+        if (!settingsManager.useUpstreamApi) {
+            viewModelScope.launch { loadDownstreamWallpaper() }
+            return
+        }
+        
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
                 val item = repository.fetchSingleWallpaper(apiIndex)
-                if (item != null) {
-                    _currentWallpaper.value = item
-                } else {
-                    _error.value = "Failed to load wallpaper"
-                }
+                _currentWallpaper.value = item ?: throw Exception("Failed to load wallpaper")
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
@@ -82,7 +93,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshWallpaper() {
+        repository.clearCurrentApiCache()
         loadRandomWallpaper(currentApiIndex)
     }
-
 }

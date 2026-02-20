@@ -8,42 +8,41 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.widget.Toast
 import coil.ImageLoader
 import coil.request.ImageRequest
-import com.folkbanner.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStream
 
 object DownloadManager {
     
-    suspend fun downloadImage(
-        context: Context,
-        imageUrl: String,
-        imageLoader: ImageLoader
-    ): Boolean = withContext(Dispatchers.IO) {
+    suspend fun downloadImage(context: Context, imageUrl: String, imageLoader: ImageLoader): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .allowHardware(false)
+                    .build()
+                
+                val result = imageLoader.execute(request)
+                val drawable = result.drawable ?: return@withContext false
+                val bitmap = drawableToBitmap(drawable)
+                saveToGallery(context, bitmap)
+            } catch (_: Exception) {
+                false
+            }
+        }
+    
+    suspend fun saveBitmap(context: Context, bitmap: Bitmap): Boolean = withContext(Dispatchers.IO) {
         try {
-            val request = ImageRequest.Builder(context)
-                .data(imageUrl)
-                .allowHardware(false)
-                .build()
-            
-            val result = imageLoader.execute(request)
-            val drawable = result.drawable ?: return@withContext false
-            
-            val bitmap = drawableToBitmap(drawable)
             saveToGallery(context, bitmap)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
             false
         }
     }
     
     private fun drawableToBitmap(drawable: Drawable): Bitmap {
-        if (drawable is BitmapDrawable) {
-            return drawable.bitmap
-        }
+        if (drawable is BitmapDrawable) return drawable.bitmap
         
         val width = drawable.intrinsicWidth.coerceAtLeast(1)
         val height = drawable.intrinsicHeight.coerceAtLeast(1)
@@ -52,7 +51,6 @@ object DownloadManager {
         val canvas = android.graphics.Canvas(bitmap)
         drawable.setBounds(0, 0, canvas.width, canvas.height)
         drawable.draw(canvas)
-        
         return bitmap
     }
     
@@ -75,23 +73,19 @@ object DownloadManager {
         var outputStream: OutputStream? = null
         try {
             outputStream = contentResolver.openOutputStream(uri)
-            outputStream?.let { stream ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-            }
+            outputStream?.let { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 contentValues.clear()
                 contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
                 contentResolver.update(uri, contentValues, null, null)
             }
-            
             return true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             contentResolver.delete(uri, null, null)
             return false
         } finally {
             outputStream?.close()
         }
     }
-    
 }

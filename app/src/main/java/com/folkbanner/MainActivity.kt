@@ -40,11 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initImageLoader() {
         imageLoader = ImageLoader.Builder(this)
-            .memoryCache {
-                MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
-                    .build()
-            }
+            .memoryCache { MemoryCache.Builder(this).maxSizePercent(0.25).build() }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
@@ -56,51 +52,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        binding.fabRefresh.setOnClickListener {
-            viewModel.refreshWallpaper()
-        }
+        binding.fabRefresh.setOnClickListener { viewModel.refreshWallpaper() }
 
         binding.fabDownload.setOnClickListener {
-            viewModel.currentWallpaper.value?.let { item ->
-                downloadWallpaper(item.url)
-            }
+            viewModel.currentWallpaper.value?.let { downloadWallpaper(it.url) }
         }
 
-        binding.btnSettings.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
+        binding.btnSettings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                tab?.position?.let { position ->
-                    viewModel.loadRandomWallpaper(position)
-                }
+                tab?.position?.let { viewModel.loadRandomWallpaper(it) }
             }
-
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-        binding.btnRetry.setOnClickListener {
-            viewModel.loadApis()
-        }
-
-        binding.btnAbout.setOnClickListener {
-            showAboutDialog()
-        }
+        binding.btnRetry.setOnClickListener { viewModel.loadApis() }
+        binding.btnAbout.setOnClickListener { showAboutDialog() }
     }
 
     private fun observeData() {
         viewModel.apis.observe(this) { apis ->
             binding.tabLayout.removeAllTabs()
-            apis.forEach { api ->
-                binding.tabLayout.addTab(binding.tabLayout.newTab().setText(api.name))
-            }
+            apis.forEach { binding.tabLayout.addTab(binding.tabLayout.newTab().setText(it.name)) }
         }
 
         viewModel.currentWallpaper.observe(this) { item ->
             item?.let {
-                loadImage(it.url)
+                if (it.bitmap != null) {
+                    binding.imageView.setImageBitmap(it.bitmap)
+                } else {
+                    loadImage(it.url)
+                }
                 binding.fabDownload.show()
             }
         }
@@ -125,25 +109,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        updateTabLayoutVisibility()
-    }
-
-    private fun updateTabLayoutVisibility() {
-        if (settingsManager.useUpstreamApi) {
-            binding.tabLayout.visibility = View.VISIBLE
-        } else {
-            binding.tabLayout.visibility = View.GONE
-        }
+        binding.tabLayout.visibility = if (settingsManager.useUpstreamApi) View.VISIBLE else View.GONE
     }
 
     private fun loadImage(url: String) {
-        val request = ImageRequest.Builder(this)
-            .data(url)
-            .target(binding.imageView)
-            .crossfade(true)
-            .build()
-
-        imageLoader.enqueue(request)
+        imageLoader.enqueue(
+            ImageRequest.Builder(this)
+                .data(url)
+                .target(binding.imageView)
+                .crossfade(true)
+                .build()
+        )
     }
 
     private fun downloadWallpaper(url: String) {
@@ -151,45 +127,38 @@ class MainActivity : AppCompatActivity() {
         Snackbar.make(binding.root, getString(R.string.downloading), Snackbar.LENGTH_SHORT).show()
 
         lifecycleScope.launch {
-            val success = DownloadManager.downloadImage(this@MainActivity, url, imageLoader)
-
-            if (success) {
-                Snackbar.make(
-                    binding.root,
-                    getString(R.string.download_success),
-                    Snackbar.LENGTH_SHORT
-                ).show()
+            val bitmap = viewModel.currentWallpaper.value?.bitmap
+            val success = if (bitmap != null) {
+                DownloadManager.saveBitmap(this@MainActivity, bitmap)
             } else {
-                Snackbar.make(
-                    binding.root,
-                    getString(R.string.download_failed),
-                    Snackbar.LENGTH_SHORT
-                ).show()
+                DownloadManager.downloadImage(this@MainActivity, url, imageLoader)
             }
+
+            Snackbar.make(
+                binding.root,
+                getString(if (success) R.string.download_success else R.string.download_failed),
+                Snackbar.LENGTH_SHORT
+            ).show()
             binding.fabDownload.isEnabled = true
         }
     }
 
     private fun showAboutDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_about, null)
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
+        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
 
         dialogView.findViewById<View>(R.id.btnGithub).setOnClickListener {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.github_url)))
-            startActivity(intent)
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.github_url))))
         }
 
-        val imageView = dialogView.findViewById<android.widget.ImageView>(R.id.ivAvatar)
-        val request = ImageRequest.Builder(this)
-            .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
-            .target(imageView)
-            .build()
-        imageLoader.enqueue(request)
+        imageLoader.enqueue(
+            ImageRequest.Builder(this)
+                .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
+                .target(dialogView.findViewById(R.id.ivAvatar))
+                .build()
+        )
 
         dialog.show()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
     }
-
 }
