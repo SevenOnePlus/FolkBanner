@@ -152,13 +152,15 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.github_url))))
         }
 
-        val avatarView: ImageView? = dialogView.findViewById(R.id.ivAvatar)
-        imageLoader.enqueue(
-            ImageRequest.Builder(this)
-                .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
-                .target(avatarView)
-                .build()
-        )
+        val avatarView = dialogView.findViewById<ImageView>(R.id.ivAvatar)
+        if (avatarView != null) {
+            imageLoader.enqueue(
+                ImageRequest.Builder(this)
+                    .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
+                    .target(avatarView)
+                    .build()
+            )
+        }
 
         dialog.show()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
