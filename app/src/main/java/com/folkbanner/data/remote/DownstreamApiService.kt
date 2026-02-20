@@ -17,7 +17,7 @@ class DownstreamApiService {
     companion object {
         private const val GITHUB_API = "https://api.github.com/repos/SevenOnePlus/Banner-Down/contents/Normal"
         private const val GITHUB_RAW = "https://raw.githubusercontent.com/SevenOnePlus/Banner-Down/main"
-        private const val CACHE_DURATION_MS = 5 * 60 * 1000L // 5分钟缓存
+        private const val CACHE_DURATION_MS = 5 * 60 * 1000L
         
         private val client = OkHttpClient.Builder()
             .followRedirects(true)
@@ -26,7 +26,6 @@ class DownstreamApiService {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
             
-        // 文件列表缓存
         private var cachedFiles: List<NormalFile>? = null
         private var cacheTimestamp: Long = 0
     }
@@ -174,7 +173,6 @@ class DownstreamApiService {
     }
 
     private suspend fun fetchFileList(): List<NormalFile> = withContext(Dispatchers.IO) {
-        // 检查缓存是否有效
         val now = System.currentTimeMillis()
         cachedFiles?.let { files ->
             if (now - cacheTimestamp < CACHE_DURATION_MS && files.isNotEmpty()) {
@@ -192,14 +190,12 @@ class DownstreamApiService {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 AppLogger.log("API请求失败: ${response.code}")
-                // 如果请求失败但有缓存，继续使用缓存
                 cachedFiles?.let { return@withContext it }
                 throw Exception("Failed to fetch file list: ${response.code}")
             }
             
             val body = response.body?.string() ?: throw Exception("Empty response")
             
-            // 检查限流信息
             val rateLimitRemaining = response.header("X-RateLimit-Remaining")
             rateLimitRemaining?.let {
                 AppLogger.log("API剩余次数: $it")
@@ -220,7 +216,6 @@ class DownstreamApiService {
                 } else null
             }
             
-            // 更新缓存
             cachedFiles = files
             cacheTimestamp = now
             

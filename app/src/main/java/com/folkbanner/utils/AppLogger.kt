@@ -1,9 +1,7 @@
 package com.folkbanner.utils
 
-import android.app.Application
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 
 object AppLogger {
 
@@ -13,7 +11,6 @@ object AppLogger {
     private val _toast = MutableLiveData<String?>()
     val toast: LiveData<String?> = _toast
     
-    // Debug模式开关，生产环境可设为false
     var isDebugMode = true
 
     fun log(message: String) {
@@ -23,10 +20,6 @@ object AppLogger {
         _logs.postValue((_logs.value ?: "") + logEntry + "\n")
     }
     
-    /**
-     * 记录调试信息（仅在debug模式下输出）
-     * 用于敏感信息如Base64内容片段等
-     */
     fun logDebug(message: String) {
         if (isDebugMode) {
             log(message)
