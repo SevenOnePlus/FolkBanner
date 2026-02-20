@@ -14,10 +14,10 @@ object NativeRandomGenerator {
         try {
             System.loadLibrary("folkrandom")
             isNativeLoaded = true
-            Log.d(TAG, "Native库加载成功，使用C++加速")
+            Log.d(TAG, "Native library loaded successfully")
         } catch (e: UnsatisfiedLinkError) {
             isNativeLoaded = false
-            Log.d(TAG, "Native库未找到，使用Kotlin回退实现")
+            Log.d(TAG, "Native library not found, using Kotlin fallback")
         }
     }
 

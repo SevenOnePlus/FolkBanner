@@ -139,13 +139,10 @@ class DownstreamApiService {
     private fun cleanBase64String(input: String): String {
         var result = input.trim()
         
-        val dataPrefix = result.indexOf("data:")
-        val base64Index = result.indexOf(";base64,")
-        if (dataPrefix >= 0 && base64Index > dataPrefix) {
-            val commaIndex = result.indexOf(',', base64Index)
-            if (commaIndex >= 0) {
-                result = result.substring(commaIndex + 1)
-            }
+        val base64Marker = ";base64,"
+        val markerIndex = result.indexOf(base64Marker)
+        if (markerIndex >= 0) {
+            result = result.substring(markerIndex + base64Marker.length)
         } else {
             val commaIndex = result.indexOf(',')
             if (commaIndex >= 0 && commaIndex < 100) {
@@ -153,9 +150,7 @@ class DownstreamApiService {
             }
         }
         
-        result = result.replace(Regex("[\\s\\r\\n]"), "")
-        
-        return result
+        return result.replace(Regex("[\\s\\r\\n]"), "")
     }
 
     private fun detectMimeType(data: ByteArray): String {
@@ -168,7 +163,7 @@ class DownstreamApiService {
             data[0] == 0x42.toByte() && data[1] == 0x4D.toByte() -> "BMP"
             data[0] == 0x52.toByte() && data[1] == 0x49.toByte() && 
             data[2] == 0x46.toByte() && data[3] == 0x46.toByte() -> "WEBP"
-            else -> "unknown (${String(data.copyOf(4))})"
+            else -> "unknown"
         }
     }
 
