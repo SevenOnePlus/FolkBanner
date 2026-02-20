@@ -175,13 +175,15 @@ class DownstreamApiService {
 
     private suspend fun fetchFileList(): List<NormalFile> {
         val now = System.currentTimeMillis()
-        synchronized(cacheLock) {
-            cachedFiles?.let { files ->
-                if (now - cacheTimestamp < CACHE_DURATION_MS && files.isNotEmpty()) {
-                    AppLogger.log("使用缓存的文件列表(${files.size}个)")
-                    return files
-                }
-            }
+        
+        // 检查缓存 - 使用 synchronized 返回值避免在块内 return
+        val cached = synchronized(cacheLock) {
+            cachedFiles?.takeIf { now - cacheTimestamp < CACHE_DURATION_MS && it.isNotEmpty() }
+        }
+        
+        if (cached != null) {
+            AppLogger.log("使用缓存的文件列表(${cached.size}个)")
+            return cached
         }
         
         AppLogger.log("请求GitHub API...")
@@ -193,8 +195,10 @@ class DownstreamApiService {
         return client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 AppLogger.log("API请求失败: ${response.code}")
-                synchronized(cacheLock) {
-                    cachedFiles?.let { return it }
+                // 尝试使用过期缓存作为后备
+                val fallback = synchronized(cacheLock) { cachedFiles }
+                if (!fallback.isNullOrEmpty()) {
+                    return@use fallback
                 }
                 throw Exception("Failed to fetch file list: ${response.code}")
             }
