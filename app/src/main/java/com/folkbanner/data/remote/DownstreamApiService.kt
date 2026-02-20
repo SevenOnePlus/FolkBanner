@@ -190,7 +190,7 @@ class DownstreamApiService {
             .header("Accept", "application/vnd.github.v3+json")
             .build()
 
-        client.newCall(request).execute().use { response ->
+        return client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 AppLogger.log("API请求失败: ${response.code}")
                 synchronized(cacheLock) {
