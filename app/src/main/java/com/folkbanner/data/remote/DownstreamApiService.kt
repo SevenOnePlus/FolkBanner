@@ -220,15 +220,14 @@ class DownstreamApiService {
                 } else null
             }
             
-            synchronized(cacheLock) {
-                cachedFiles = files
-                cacheTimestamp = now
+                    synchronized(cacheLock) {
+                        cachedFiles = files
+                        cacheTimestamp = now
+                    }
+                    
+                    return@use files
+                }
             }
-            
-            files
-        }
-    }
-
     private fun downloadFileContent(url: String): String {
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
