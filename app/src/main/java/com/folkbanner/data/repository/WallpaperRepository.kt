@@ -63,11 +63,10 @@ class WallpaperRepository(
 
     fun clearCurrentApiCache() {
         dedupHelper.clear()
-        currentBitmap?.let {
-            if (!it.isRecycled) {
-                it.recycle()
-            }
-        }
+        // 注意：不能在这里调用 bitmap.recycle()
+        // 因为 bitmap 可能正在被 ImageView 显示
+        // recycle() 在 bitmap 仍被使用时会抛出 IllegalStateException 导致崩溃
+        // 让 GC 自动处理内存释放
         currentBitmap = null
     }
 }
