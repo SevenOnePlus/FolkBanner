@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -151,10 +152,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.github_url))))
         }
 
+        val avatarView: ImageView? = dialogView.findViewById(R.id.ivAvatar)
         imageLoader.enqueue(
             ImageRequest.Builder(this)
                 .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
-                .target(dialogView.findViewById(R.id.ivAvatar))
+                .target(avatarView)
                 .build()
         )
 
