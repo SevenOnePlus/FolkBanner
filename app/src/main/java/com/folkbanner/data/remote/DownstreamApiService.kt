@@ -18,6 +18,7 @@ class DownstreamApiService {
         private const val GITHUB_API = "https://api.github.com/repos/SevenOnePlus/Banner-Down/contents/Normal"
         private const val GITHUB_RAW = "https://raw.githubusercontent.com/SevenOnePlus/Banner-Down/main"
         private const val CACHE_DURATION_MS = 5 * 60 * 1000L
+        private const val DATA_URI_PREFIX_MAX_LENGTH = 100
         
         private val client = OkHttpClient.Builder()
             .followRedirects(true)
@@ -26,8 +27,13 @@ class DownstreamApiService {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
             
+        private val base64CleanRegex = Regex("[\\s\\r\\n]")
+        
+        @Volatile
         private var cachedFiles: List<NormalFile>? = null
+        @Volatile
         private var cacheTimestamp: Long = 0
+        private val cacheLock = Any()
     }
 
     data class NormalFile(
@@ -145,12 +151,12 @@ class DownstreamApiService {
             result = result.substring(markerIndex + base64Marker.length)
         } else {
             val commaIndex = result.indexOf(',')
-            if (commaIndex >= 0 && commaIndex < 100) {
+            if (commaIndex >= 0 && commaIndex < DATA_URI_PREFIX_MAX_LENGTH) {
                 result = result.substring(commaIndex + 1)
             }
         }
         
-        return result.replace(Regex("[\\s\\r\\n]"), "")
+        return base64CleanRegex.replace(result, "")
     }
 
     private fun detectMimeType(data: ByteArray): String {
@@ -167,12 +173,14 @@ class DownstreamApiService {
         }
     }
 
-    private suspend fun fetchFileList(): List<NormalFile> = withContext(Dispatchers.IO) {
+    private suspend fun fetchFileList(): List<NormalFile> {
         val now = System.currentTimeMillis()
-        cachedFiles?.let { files ->
-            if (now - cacheTimestamp < CACHE_DURATION_MS && files.isNotEmpty()) {
-                AppLogger.log("使用缓存的文件列表(${files.size}个)")
-                return@withContext files
+        synchronized(cacheLock) {
+            cachedFiles?.let { files ->
+                if (now - cacheTimestamp < CACHE_DURATION_MS && files.isNotEmpty()) {
+                    AppLogger.log("使用缓存的文件列表(${files.size}个)")
+                    return files
+                }
             }
         }
         
@@ -185,14 +193,15 @@ class DownstreamApiService {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 AppLogger.log("API请求失败: ${response.code}")
-                cachedFiles?.let { return@withContext it }
+                synchronized(cacheLock) {
+                    cachedFiles?.let { return it }
+                }
                 throw Exception("Failed to fetch file list: ${response.code}")
             }
             
             val body = response.body?.string() ?: throw Exception("Empty response")
             
-            val rateLimitRemaining = response.header("X-RateLimit-Remaining")
-            rateLimitRemaining?.let {
+            response.header("X-RateLimit-Remaining")?.let {
                 AppLogger.log("API剩余次数: $it")
             }
             
@@ -211,8 +220,10 @@ class DownstreamApiService {
                 } else null
             }
             
-            cachedFiles = files
-            cacheTimestamp = now
+            synchronized(cacheLock) {
+                cachedFiles = files
+                cacheTimestamp = now
+            }
             
             files
         }
