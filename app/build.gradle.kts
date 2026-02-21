@@ -28,6 +28,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 使用debug签名以便CI/CD能生成可安装的APK
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     
