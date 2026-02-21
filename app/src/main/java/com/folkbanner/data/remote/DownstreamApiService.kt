@@ -250,4 +250,15 @@ class DownstreamApiService {
         val url: String,
         val bitmap: Bitmap
     )
+
+    /**
+     * 清除文件列表缓存
+     * 当用户刷新或切换API模式时应调用此方法
+     */
+    fun clearCache() {
+        synchronized(cacheLock) {
+            cachedFiles = null
+            cacheTimestamp = 0
+        }
+    }
 }

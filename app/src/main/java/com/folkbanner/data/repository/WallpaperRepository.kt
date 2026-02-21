@@ -64,5 +64,6 @@ class WallpaperRepository(
     fun clearCurrentApiCache() {
         dedupHelper.clear()
         currentBitmap = null
+        downstreamApiService.clearCache()
     }
 }
