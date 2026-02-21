@@ -93,7 +93,17 @@ Java_com_folkbanner_utils_NativeRandomGenerator_nativeDecodeBase64(
     
     while (len > 0 && clean[len-1] == '=') len--;
     
+    if (len == 0) {
+        (*env)->ReleaseStringUTFChars(env, input, src);
+        return NULL;
+    }
+    
     size_t out_len = (len * 3) / 4;
+    if (out_len == 0) {
+        (*env)->ReleaseStringUTFChars(env, input, src);
+        return NULL;
+    }
+    
     unsigned char* out = (unsigned char*)malloc(out_len + 1);
     if (!out) {
         (*env)->ReleaseStringUTFChars(env, input, src);

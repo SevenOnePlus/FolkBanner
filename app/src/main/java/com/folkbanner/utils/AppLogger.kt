@@ -2,6 +2,9 @@ package com.folkbanner.utils
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object AppLogger {
 
@@ -12,12 +15,22 @@ object AppLogger {
     val toast: LiveData<String?> = _toast
     
     var isDebugMode = true
+    
+    private val logLock = Any()
+    private val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     fun log(message: String) {
-        val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
-            .format(java.util.Date())
-        val logEntry = "[$timestamp] $message"
-        _logs.postValue((_logs.value ?: "") + logEntry + "\n")
+        val timestamp: String
+        val logEntry: String
+        val currentLogs: String
+        
+        synchronized(logLock) {
+            timestamp = dateFormat.format(Date())
+            logEntry = "[$timestamp] $message"
+            currentLogs = _logs.value ?: ""
+        }
+        
+        _logs.postValue(currentLogs + logEntry + "\n")
     }
     
     fun logDebug(message: String) {
@@ -35,6 +48,8 @@ object AppLogger {
     }
 
     fun clear() {
-        _logs.postValue("")
+        synchronized(logLock) {
+            _logs.postValue("")
+        }
     }
 }

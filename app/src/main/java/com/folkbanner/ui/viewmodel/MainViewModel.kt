@@ -90,7 +90,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         currentApiIndex = apiIndex
         
         if (!settingsManager.useUpstreamApi) {
-            viewModelScope.launch { loadApis() }
+            loadApis()
             return
         }
         
