@@ -58,9 +58,9 @@ class DownstreamApiService {
         val file = files[index - 1]
         AppLogger.log("文件名: ${file.name}")
         
-        AppLogger.log("开始下载文件内容...")
+        AppLogger.log("正在从网络获取文件内容...")
         val base64Content = downloadFileContent(file.downloadUrl)
-        AppLogger.log("下载完成, 大小: ${base64Content.length} 字符")
+        AppLogger.log("获取完成, 大小: ${base64Content.length} 字符")
         
         AppLogger.logDebug("原始内容前100字符: ${base64Content.take(100)}")
         
@@ -236,7 +236,7 @@ class DownstreamApiService {
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                AppLogger.log("下载失败: ${response.code}")
+                AppLogger.log("网络请求失败: ${response.code}")
                 throw Exception("Failed to download: ${response.code}")
             }
             return response.body?.string() ?: throw Exception("Empty content")
