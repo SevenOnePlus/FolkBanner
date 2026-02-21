@@ -15,7 +15,8 @@ import java.util.concurrent.TimeUnit
 class DownstreamApiService {
 
     companion object {
-        private const val GITHUB_API = "https://api.github.com/repos/SevenOnePlus/Banner-Down/contents/Normal"
+        private const val GITHUB_API_NORMAL = "https://api.github.com/repos/SevenOnePlus/Banner-Down/contents/Normal"
+        private const val GITHUB_API_R18 = "https://api.github.com/repos/SevenOnePlus/Banner-Down/contents/R18+"
         private const val GITHUB_RAW = "https://raw.githubusercontent.com/SevenOnePlus/Banner-Down/main"
         private const val CACHE_DURATION_MS = 5 * 60 * 1000L
         private const val DATA_URI_PREFIX_MAX_LENGTH = 100
@@ -30,7 +31,9 @@ class DownstreamApiService {
         private val base64CleanRegex = Regex("[\\s\\r\\n]")
         
         @Volatile
-        private var cachedFiles: List<NormalFile>? = null
+        private var cachedNormalFiles: List<NormalFile>? = null
+        @Volatile
+        private var cachedR18Files: List<NormalFile>? = null
         @Volatile
         private var cacheTimestamp: Long = 0
         private val cacheLock = Any()
@@ -41,10 +44,10 @@ class DownstreamApiService {
         val downloadUrl: String
     )
 
-    suspend fun fetchRandomNormalImage(): RandomFileResult = withContext(Dispatchers.IO) {
-        AppLogger.log("开始获取文件列表...")
+    suspend fun fetchRandomNormalImage(r18Enabled: Boolean = false): RandomFileResult = withContext(Dispatchers.IO) {
+        AppLogger.log("开始获取文件列表... (R18模式: $r18Enabled)")
         
-        val files = fetchFileList()
+        val files = fetchFileList(r18Enabled)
         AppLogger.log("获取到 ${files.size} 个文件")
         
         if (files.isEmpty()) {
@@ -173,43 +176,86 @@ class DownstreamApiService {
         }
     }
 
-    private suspend fun fetchFileList(): List<NormalFile> {
+    private suspend fun fetchFileList(r18Enabled: Boolean): List<NormalFile> {
         val now = System.currentTimeMillis()
         
-        // 检查缓存 - 使用 synchronized 返回值避免在块内 return
-        val cached = synchronized(cacheLock) {
-            cachedFiles?.takeIf { now - cacheTimestamp < CACHE_DURATION_MS && it.isNotEmpty() }
+        // 检查缓存
+        val cachedNormal = synchronized(cacheLock) {
+            cachedNormalFiles?.takeIf { now - cacheTimestamp < CACHE_DURATION_MS && it.isNotEmpty() }
+        }
+        val cachedR18 = synchronized(cacheLock) {
+            cachedR18Files?.takeIf { now - cacheTimestamp < CACHE_DURATION_MS && it.isNotEmpty() }
         }
         
-        if (cached != null) {
-            AppLogger.log("使用缓存的文件列表(${cached.size}个)")
-            return cached
+        val normalFiles: List<NormalFile>
+        val r18Files: List<NormalFile>
+        
+        if (cachedNormal != null) {
+            AppLogger.log("使用缓存的Normal文件列表(${cachedNormal.size}个)")
+            normalFiles = cachedNormal
+        } else {
+            normalFiles = fetchFilesFromApi(GITHUB_API_NORMAL, "Normal")
+            if (normalFiles.isEmpty()) {
+                throw Exception("Normal文件夹为空或获取失败")
+            }
+            synchronized(cacheLock) {
+                cachedNormalFiles = normalFiles
+            }
         }
         
-        AppLogger.log("请求GitHub API...")
+        if (r18Enabled) {
+            if (cachedR18 != null) {
+                AppLogger.log("使用缓存的R18+文件列表(${cachedR18.size}个)")
+                r18Files = cachedR18
+            } else {
+                r18Files = fetchFilesFromApi(GITHUB_API_R18, "R18+")
+                synchronized(cacheLock) {
+                    cachedR18Files = r18Files
+                    cacheTimestamp = now
+                }
+            }
+            
+            // 如果R18+文件夹为空，只使用Normal文件
+            if (r18Files.isEmpty()) {
+                AppLogger.log("R18+文件夹为空，仅使用Normal文件(${normalFiles.size}个)")
+                synchronized(cacheLock) {
+                    cacheTimestamp = now
+                }
+                return normalFiles
+            }
+            
+            val combinedFiles = normalFiles + r18Files
+            AppLogger.log("合并后共 ${combinedFiles.size} 个文件 (Normal: ${normalFiles.size}, R18+: ${r18Files.size})")
+            return combinedFiles
+        }
+        
+        synchronized(cacheLock) {
+            cacheTimestamp = now
+        }
+        
+        return normalFiles
+    }
+    
+    private suspend fun fetchFilesFromApi(apiUrl: String, folderName: String): List<NormalFile> {
+        AppLogger.log("请求GitHub API ($folderName)...")
         val request = Request.Builder()
-            .url(GITHUB_API)
+            .url(apiUrl)
             .header("Accept", "application/vnd.github.v3+json")
             .build()
 
         return client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                AppLogger.log("API请求失败: ${response.code}")
-                // 尝试使用过期缓存作为后备
-                val fallback = synchronized(cacheLock) { cachedFiles }
-                if (!fallback.isNullOrEmpty()) {
-                    return@use fallback
-                }
-                throw Exception("Failed to fetch file list: ${response.code}")
+                AppLogger.log("$folderName API请求失败: ${response.code}")
+                return@use emptyList()
             }
             
-            val body = response.body?.string() ?: throw Exception("Empty response")
+            val body = response.body?.string() ?: return@use emptyList()
             
             response.header("X-RateLimit-Remaining")?.let {
                 AppLogger.log("API剩余次数: $it")
             }
             
-            AppLogger.log("API响应成功")
+            AppLogger.log("$folderName API响应成功")
             
             val jsonArray = JSONArray(body)
             
@@ -224,12 +270,8 @@ class DownstreamApiService {
                 } else null
             }
             
-            synchronized(cacheLock) {
-                cachedFiles = files
-                cacheTimestamp = now
-            }
-            
-            return@use files
+            AppLogger.log("$folderName 获取到 ${files.size} 个文件")
+            files
         }
     }
     private fun downloadFileContent(url: String): String {
@@ -257,7 +299,8 @@ class DownstreamApiService {
      */
     fun clearCache() {
         synchronized(cacheLock) {
-            cachedFiles = null
+            cachedNormalFiles = null
+            cachedR18Files = null
             cacheTimestamp = 0
         }
     }

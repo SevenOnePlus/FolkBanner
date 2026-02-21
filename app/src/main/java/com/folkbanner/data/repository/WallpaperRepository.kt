@@ -44,14 +44,14 @@ class WallpaperRepository(
         null
     }
 
-    suspend fun fetchDownstreamWallpaper(): WallpaperItem? = withContext(Dispatchers.IO) {
+    suspend fun fetchDownstreamWallpaper(r18Enabled: Boolean = false): WallpaperItem? = withContext(Dispatchers.IO) {
         try {
-            val result = downstreamApiService.fetchRandomNormalImage()
+            val result = downstreamApiService.fetchRandomNormalImage(r18Enabled)
             currentBitmap = result.bitmap
             WallpaperItem(
                 id = UUID.randomUUID().toString(),
                 url = "downstream://github/${result.filename}?index=${result.index}&total=${result.total}",
-                apiName = "GitHub Normal [${result.index}/${result.total}]",
+                apiName = "GitHub [${result.index}/${result.total}]",
                 bitmap = result.bitmap
             )
         } catch (_: Exception) {

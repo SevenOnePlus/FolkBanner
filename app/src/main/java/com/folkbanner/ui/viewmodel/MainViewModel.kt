@@ -42,8 +42,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _error.value = null
             
             val isUpstream = settingsManager.useUpstreamApi
+            val r18Enabled = settingsManager.r18Enabled
             AppLogger.clear()
             AppLogger.log("API模式: ${if (isUpstream) "上游API" else "下游API"}")
+            if (!isUpstream) {
+                AppLogger.log("R18模式: ${if (r18Enabled) "已启用" else "已关闭"}")
+            }
             
             if (isUpstream) {
                 try {
@@ -66,7 +70,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 AppLogger.log("开始加载下游API...")
                 _apis.value = emptyList()
                 try {
-                    val item = repository.fetchDownstreamWallpaper()
+                    val item = repository.fetchDownstreamWallpaper(r18Enabled)
                     if (item != null) {
                         AppLogger.log("壁纸加载成功!")
                         _currentWallpaper.value = item
