@@ -1,6 +1,8 @@
 import java.util.Properties
 import org.apache.tools.ant.taskdefs.condition.Os
 
+val minSdkValue = android.defaultConfig.minSdk ?: 24
+
 tasks.register("buildZigNative") {
     group = "build"
     description = "Build native library with Zig"
@@ -13,7 +15,6 @@ tasks.register("buildZigNative") {
         ?: ""
 
     val zigPath = System.getenv("ZIG_PATH") ?: "zig"
-    val minSdk = android.defaultConfig.minSdk ?: 24
 
     outputs.dir(jniLibsDir)
 
@@ -31,10 +32,10 @@ tasks.register("buildZigNative") {
         val sysroot = "$ndkPath/toolchains/llvm/prebuilt/$hostOs/sysroot"
 
         val targetConfigs = listOf(
-            Triple("arm-linux-android$minSdk", "arm-linux-androideabi", "armeabi-v7a"),
-            Triple("aarch64-linux-android$minSdk", "aarch64-linux-android", "arm64-v8a"),
-            Triple("i386-linux-android$minSdk", "i686-linux-android", "x86"),
-            Triple("x86_64-linux-android$minSdk", "x86_64-linux-android", "x86_64")
+            Triple("arm-linux-android$minSdkValue", "arm-linux-androideabi", "armeabi-v7a"),
+            Triple("aarch64-linux-android$minSdkValue", "aarch64-linux-android", "arm64-v8a"),
+            Triple("i386-linux-android$minSdkValue", "i686-linux-android", "x86"),
+            Triple("x86_64-linux-android$minSdkValue", "x86_64-linux-android", "x86_64")
         )
 
         val optimize = if (project.hasProperty("release")) "-OReleaseFast" else "-ODebug"
