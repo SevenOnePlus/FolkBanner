@@ -79,17 +79,16 @@ tasks.register("buildZigNative") {
 
     val zigDir = file("src/main/zig")
     val jniLibsDir = file("src/main/jniLibs")
-    val minSdkValue = 24  // 必须在 android 块之后定义，这里直接使用固定值
-
-    val ndkPath = project.extensions.getByType<com.android.build.gradle.BaseExtension>().ndkDirectory?.absolutePath 
-        ?: System.getenv("ANDROID_NDK_HOME") 
-        ?: ""
-
-    val zigPath = System.getenv("ZIG_PATH") ?: "zig"
 
     outputs.dir(jniLibsDir)
 
     doLast {
+        // 在执行阶段获取 NDK 路径，避免配置阶段访问未安装的 NDK
+        val ndkPath = project.extensions.getByType<com.android.build.gradle.BaseExtension>().ndkDirectory?.absolutePath 
+            ?: System.getenv("ANDROID_NDK_HOME") 
+            ?: ""
+        val zigPath = System.getenv("ZIG_PATH") ?: "zig"
+
         if (ndkPath.isEmpty() || !File(ndkPath).exists()) {
             throw GradleException("NDK path not found")
         }
