@@ -88,7 +88,7 @@ tasks.register("buildZigNative") {
         }
 
         val abis = listOf(
-            Triple("armeabi-v7a", "thumb-linux-androideabi", "arm"),
+            Triple("armeabi-v7a", "arm-linux-androideabi", "arm"),
             Triple("arm64-v8a", "aarch64-linux-android", "aarch64"),
             Triple("x86", "x86-linux-android", "i686"),
             Triple("x86_64", "x86_64-linux-android", "x86_64")
@@ -105,7 +105,7 @@ tasks.register("buildZigNative") {
                 workingDir = zigDir
                 commandLine(
                     zigPath, "build-lib",
-                    "-target", "${targetTriple}.24",
+                    "-target", targetTriple,
                     "-O", optimize,
                     "-fPIC",
                     "-dynamic",
