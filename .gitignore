@@ -98,3 +98,7 @@ Desktop.ini
 
 # Kotlin
 *.kt.kotlin_module
+
+# Zig
+.zig-cache/
+zig-out/

@@ -27,6 +27,11 @@ jobs:
       with:
         ndk-version: r29
 
+    - name: Setup Zig
+      uses: mlugg/setup-zig@v1
+      with:
+        version: '0.15.2'
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
@@ -37,6 +42,7 @@ jobs:
       run: ./gradlew assembleDebug
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        ZIG_PATH: zig
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
