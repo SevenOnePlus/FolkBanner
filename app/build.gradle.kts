@@ -88,16 +88,16 @@ tasks.register("buildZigNative") {
         }
 
         val abis = listOf(
-            Triple("armeabi-v7a", "arm-linux-androideabi", "arm"),
+            Triple("armeabi-v7a", "thumb-linux-androideabi", "arm"),
             Triple("arm64-v8a", "aarch64-linux-android", "aarch64"),
-            Triple("x86", "i686-linux-android", "i386"),
+            Triple("x86", "x86-linux-android", "i686"),
             Triple("x86_64", "x86_64-linux-android", "x86_64")
         )
         val optimize = if (project.hasProperty("release")) "ReleaseFast" else "Debug"
 
         val sysroot = "$ndkPath/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
 
-        for ((abi, targetTriple, _) in abis) {
+        for ((abi, targetTriple, arch) in abis) {
             val outputDir = File(jniLibsDir, abi)
             outputDir.mkdirs()
 
@@ -105,15 +105,15 @@ tasks.register("buildZigNative") {
                 workingDir = zigDir
                 commandLine(
                     zigPath, "build-lib",
-                    "-target", "${targetTriple}-linux-android.24",
+                    "-target", "${targetTriple}.24",
                     "-O", optimize,
                     "-fPIC",
                     "-dynamic",
                     "-fno-entry",
                     "--name", "folkrandom",
                     "-I$sysroot/usr/include",
-                    "-I$sysroot/usr/include/$targetTriple",
-                    "-L$sysroot/usr/lib/$targetTriple/24",
+                    "-I$sysroot/usr/include/$arch-linux-androideabi",
+                    "-L$sysroot/usr/lib/$arch-linux-androideabi/24",
                     "-lc",
                     "jni_interface.zig",
                     "-femit-bin=${outputDir.absolutePath}/libfolkrandom.so"
