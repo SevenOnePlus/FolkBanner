@@ -3,7 +3,6 @@ package com.folkbanner.data.remote
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
-import com.folkbanner.utils.AppLogger
 import com.folkbanner.utils.NativeRandomGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,82 +44,42 @@ class DownstreamApiService {
     )
 
     suspend fun fetchRandomNormalImage(r18Enabled: Boolean = false): RandomFileResult = withContext(Dispatchers.IO) {
-        AppLogger.log("开始获取文件列表... (R18模式: $r18Enabled)")
-        
         val files = fetchFileList(r18Enabled)
-        AppLogger.log("获取到 ${files.size} 个文件")
         
         if (files.isEmpty()) {
-            AppLogger.log("错误: 文件列表为空")
             throw Exception("No files found")
         }
         
         val index = NativeRandomGenerator.generateRandomIndex(files.size)
-        AppLogger.log("随机选择: 第 $index 个文件")
-        
         val file = files[index - 1]
-        AppLogger.log("文件名: ${file.name}")
         
-        AppLogger.log("正在从网络获取文件内容...")
         val base64Content = downloadFileContent(file.downloadUrl)
-        AppLogger.log("获取完成, 大小: ${base64Content.length} 字符")
-        
-        AppLogger.logDebug("原始内容前100字符: ${base64Content.take(100)}")
-        
         val cleanBase64 = cleanBase64String(base64Content)
-        AppLogger.log("清理后大小: ${cleanBase64.length} 字符")
         
         var imageData: ByteArray? = null
-        var decodeMethod = ""
         
         try {
-            AppLogger.log("尝试Native Base64解码...")
             imageData = NativeRandomGenerator.decodeBase64(cleanBase64)
-            if (imageData != null && imageData.isNotEmpty()) {
-                decodeMethod = "Native"
-                AppLogger.log("Native解码成功: ${imageData.size} 字节")
-            }
-        } catch (e: Exception) {
-            AppLogger.log("Native解码异常: ${e.message}")
-        }
+        } catch (_: Exception) { }
         
         if (imageData == null || imageData.isEmpty()) {
             try {
-                AppLogger.log("尝试Android Base64解码...")
                 imageData = Base64.decode(cleanBase64, Base64.DEFAULT)
-                decodeMethod = "Android"
-                AppLogger.log("Android解码成功: ${imageData.size} 字节")
-            } catch (e: Exception) {
-                AppLogger.log("Android解码异常: ${e.message}")
-            }
+            } catch (_: Exception) { }
         }
         
         if (imageData == null || imageData.isEmpty()) {
-            AppLogger.log("错误: 所有Base64解码方式都失败")
             throw Exception("Failed to decode base64")
         }
         
-        AppLogger.log("解码完成(${decodeMethod}): ${imageData.size} 字节")
-        
-        val firstBytes = imageData.take(16).toByteArray()
-        val hexString = firstBytes.joinToString(" ") { "%02X".format(it) }
-        AppLogger.log("数据头部(hex): $hexString")
-        
-        val mimeType = detectMimeType(imageData)
-        AppLogger.log("检测到格式: $mimeType")
-        
-        AppLogger.log("开始生成Bitmap...")
         val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
         
         if (bitmap == null) {
-            AppLogger.log("BitmapFactory返回null，尝试其他方式...")
-            
             val options = BitmapFactory.Options()
             options.inPreferredConfig = Bitmap.Config.ARGB_8888
             val bitmap2 = BitmapFactory.decodeByteArray(imageData, 0, imageData.size, options)
             
             if (bitmap2 != null) {
-                AppLogger.log("成功! 图片尺寸: ${bitmap2.width}x${bitmap2.height}")
                 return@withContext RandomFileResult(
                     index = index,
                     total = files.size,
@@ -130,11 +89,8 @@ class DownstreamApiService {
                 )
             }
             
-            AppLogger.log("错误: Bitmap生成失败，图片数据可能损坏或格式不支持")
             throw Exception("Failed to decode image")
         }
-        
-        AppLogger.log("成功! 图片尺寸: ${bitmap.width}x${bitmap.height}")
         
         RandomFileResult(
             index = index,
@@ -162,24 +118,9 @@ class DownstreamApiService {
         return base64CleanRegex.replace(result, "")
     }
 
-    private fun detectMimeType(data: ByteArray): String {
-        if (data.size < 4) return "unknown"
-        
-        return when {
-            data[0] == 0x89.toByte() && data[1] == 0x50.toByte() -> "PNG"
-            data[0] == 0xFF.toByte() && data[1] == 0xD8.toByte() -> "JPEG"
-            data[0] == 0x47.toByte() && data[1] == 0x49.toByte() -> "GIF"
-            data[0] == 0x42.toByte() && data[1] == 0x4D.toByte() -> "BMP"
-            data[0] == 0x52.toByte() && data[1] == 0x49.toByte() && 
-            data[2] == 0x46.toByte() && data[3] == 0x46.toByte() -> "WEBP"
-            else -> "unknown"
-        }
-    }
-
     private suspend fun fetchFileList(r18Enabled: Boolean): List<NormalFile> {
         val now = System.currentTimeMillis()
         
-        // 检查缓存
         val cachedNormal = synchronized(cacheLock) {
             cachedNormalFiles?.takeIf { now - cacheTimestamp < CACHE_DURATION_MS && it.isNotEmpty() }
         }
@@ -191,7 +132,6 @@ class DownstreamApiService {
         val r18Files: List<NormalFile>
         
         if (cachedNormal != null) {
-            AppLogger.log("使用缓存的Normal文件列表(${cachedNormal.size}个)")
             normalFiles = cachedNormal
         } else {
             normalFiles = fetchFilesFromApi(GITHUB_API_NORMAL, "Normal")
@@ -205,7 +145,6 @@ class DownstreamApiService {
         
         if (r18Enabled) {
             if (cachedR18 != null) {
-                AppLogger.log("使用缓存的R18+文件列表(${cachedR18.size}个)")
                 r18Files = cachedR18
             } else {
                 r18Files = fetchFilesFromApi(GITHUB_API_R18, "R18+")
@@ -215,18 +154,14 @@ class DownstreamApiService {
                 }
             }
             
-            // 如果R18+文件夹为空，只使用Normal文件
             if (r18Files.isEmpty()) {
-                AppLogger.log("R18+文件夹为空，仅使用Normal文件(${normalFiles.size}个)")
                 synchronized(cacheLock) {
                     cacheTimestamp = now
                 }
                 return normalFiles
             }
             
-            val combinedFiles = normalFiles + r18Files
-            AppLogger.log("合并后共 ${combinedFiles.size} 个文件 (Normal: ${normalFiles.size}, R18+: ${r18Files.size})")
-            return combinedFiles
+            return normalFiles + r18Files
         }
         
         synchronized(cacheLock) {
@@ -237,7 +172,6 @@ class DownstreamApiService {
     }
     
     private suspend fun fetchFilesFromApi(apiUrl: String, folderName: String): List<NormalFile> {
-        AppLogger.log("请求GitHub API ($folderName)...")
         val request = Request.Builder()
             .url(apiUrl)
             .header("Accept", "application/vnd.github.v3+json")
@@ -245,21 +179,13 @@ class DownstreamApiService {
 
         return client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                AppLogger.log("$folderName API请求失败: ${response.code}")
                 return@use emptyList()
             }
             
             val body = response.body?.string() ?: return@use emptyList()
-            
-            response.header("X-RateLimit-Remaining")?.let {
-                AppLogger.log("API剩余次数: $it")
-            }
-            
-            AppLogger.log("$folderName API响应成功")
-            
             val jsonArray = JSONArray(body)
             
-            val files = (0 until jsonArray.length()).mapNotNull { i ->
+            (0 until jsonArray.length()).mapNotNull { i ->
                 val item = jsonArray.getJSONObject(i)
                 if (item.getString("type") == "file") {
                     val name = item.getString("name")
@@ -269,16 +195,13 @@ class DownstreamApiService {
                     NormalFile(name, downloadUrl)
                 } else null
             }
-            
-            AppLogger.log("$folderName 获取到 ${files.size} 个文件")
-            files
         }
     }
+    
     private fun downloadFileContent(url: String): String {
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                AppLogger.log("网络请求失败: ${response.code}")
                 throw Exception("Failed to download: ${response.code}")
             }
             return response.body?.string() ?: throw Exception("Empty content")
@@ -293,10 +216,6 @@ class DownstreamApiService {
         val bitmap: Bitmap
     )
 
-    /**
-     * 清除文件列表缓存
-     * 当用户刷新或切换API模式时应调用此方法
-     */
     fun clearCache() {
         synchronized(cacheLock) {
             cachedNormalFiles = null

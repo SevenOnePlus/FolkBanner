@@ -1,11 +1,8 @@
 package com.folkbanner.utils
 
 import android.util.Base64
-import android.util.Log
 
 object NativeRandomGenerator {
-
-    private const val TAG = "NativeRandomGenerator"
     
     var isNativeLoaded = false
         private set
@@ -14,10 +11,8 @@ object NativeRandomGenerator {
         try {
             System.loadLibrary("folkrandom")
             isNativeLoaded = true
-            Log.d(TAG, "Native library loaded successfully")
-        } catch (e: UnsatisfiedLinkError) {
+        } catch (_: UnsatisfiedLinkError) {
             isNativeLoaded = false
-            Log.d(TAG, "Native library not found, using Kotlin fallback")
         }
     }
 

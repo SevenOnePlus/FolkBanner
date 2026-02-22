@@ -14,8 +14,6 @@ object AppLogger {
     private val _toast = MutableLiveData<String?>()
     val toast: LiveData<String?> = _toast
     
-    var isDebugMode = true
-    
     private val logLock = Any()
     private val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
@@ -31,12 +29,6 @@ object AppLogger {
         }
         
         _logs.postValue(currentLogs + logEntry + "\n")
-    }
-    
-    fun logDebug(message: String) {
-        if (isDebugMode) {
-            log(message)
-        }
     }
 
     fun toast(message: String) {
