@@ -27,10 +27,11 @@ jobs:
       with:
         ndk-version: r29
 
-    - name: Setup Zig
-      uses: mlugg/setup-zig@v1
-      with:
-        version: '0.15.2'
+    - name: Setup Zig 0.15.2
+      run: |
+        curl -L https://ziglang.org/download/0.15.2/zig-linux-x86_64-0.15.2.tar.xz -o zig.tar.xz
+        tar -xf zig.tar.xz
+        echo "$PWD/zig-linux-x86_64-0.15.2" >> $GITHUB_PATH
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
