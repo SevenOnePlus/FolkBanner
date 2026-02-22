@@ -20,6 +20,8 @@
     <string name="downstream_api_desc">使用备用 API 来源</string>
     <string name="r18_option">R18+</string>
     <string name="r18_option_desc">启用成人内容 (需要使用下游 API)</string>
+    <string name="debug_mode">调试模式</string>
+    <string name="debug_mode_desc">显示日志输出</string>
     <string name="author_name">Matsuzaka Yuki</string>
     <string name="author_title">毎日を楽しく過ごしましょう</string>
     <string name="author_avatar">作者头像</string>

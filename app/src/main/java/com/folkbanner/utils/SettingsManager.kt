@@ -11,6 +11,7 @@ class SettingsManager(context: Context) {
         private const val PREFS_NAME = "folk_banner_settings"
         private const val KEY_USE_UPSTREAM_API = "use_upstream_api"
         private const val KEY_R18_ENABLED = "r18_enabled"
+        private const val KEY_DEBUG_MODE = "debug_mode"
         
         @Volatile
         private var INSTANCE: SettingsManager? = null
@@ -28,4 +29,8 @@ class SettingsManager(context: Context) {
     var r18Enabled: Boolean
         get() = prefs.getBoolean(KEY_R18_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_R18_ENABLED, value).apply()
+
+    var debugMode: Boolean
+        get() = prefs.getBoolean(KEY_DEBUG_MODE, false)
+        set(value) = prefs.edit().putBoolean(KEY_DEBUG_MODE, value).apply()
 }

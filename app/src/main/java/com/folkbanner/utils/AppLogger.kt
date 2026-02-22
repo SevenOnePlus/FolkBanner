@@ -16,8 +16,12 @@ object AppLogger {
     
     private val logLock = Any()
     private val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    
+    var debugMode = false
 
     fun log(message: String) {
+        if (!debugMode) return
+        
         val timestamp: String
         val logEntry: String
         val currentLogs: String

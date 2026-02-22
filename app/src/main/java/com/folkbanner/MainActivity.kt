@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
 
         settingsManager = SettingsManager.getInstance(this)
         lastApiMode = settingsManager.useUpstreamApi
+        AppLogger.debugMode = settingsManager.debugMode
         
         logContainer = findViewById(R.id.logContainer)
         tvLog = findViewById(R.id.tvLog)
@@ -159,8 +160,8 @@ class MainActivity : AppCompatActivity() {
             tvLog.text = logs
             logContainer.post { logContainer.fullScroll(View.FOCUS_DOWN) }
             
-            val isDownstream = !settingsManager.useUpstreamApi
-            logContainer.visibility = if (isDownstream && logs.isNotEmpty()) View.VISIBLE else View.GONE
+            val showLog = settingsManager.debugMode && !settingsManager.useUpstreamApi && logs.isNotEmpty()
+            logContainer.visibility = if (showLog) View.VISIBLE else View.GONE
         }
 
         AppLogger.toast.observe(this) { message ->
@@ -175,7 +176,10 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         val currentApiMode = settingsManager.useUpstreamApi
         
-        logContainer.visibility = if (!currentApiMode) View.VISIBLE else View.GONE
+        AppLogger.debugMode = settingsManager.debugMode
+        
+        val showLog = settingsManager.debugMode && !currentApiMode
+        logContainer.visibility = if (showLog) View.VISIBLE else View.GONE
         
         if (currentApiMode != lastApiMode) {
             lastApiMode = currentApiMode

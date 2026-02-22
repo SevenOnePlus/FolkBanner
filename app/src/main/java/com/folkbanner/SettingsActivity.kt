@@ -7,6 +7,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.folkbanner.databinding.ActivitySettingsBinding
+import com.folkbanner.utils.AppLogger
 import com.folkbanner.utils.SettingsManager
 
 class SettingsActivity : AppCompatActivity() {
@@ -43,11 +44,20 @@ class SettingsActivity : AppCompatActivity() {
         binding.switchR18.setOnCheckedChangeListener { _, isChecked ->
             settingsManager.r18Enabled = isChecked
         }
+        
+        binding.switchDebug.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.debugMode = isChecked
+            AppLogger.debugMode = isChecked
+            if (!isChecked) {
+                AppLogger.clear()
+            }
+        }
     }
 
     private fun loadSettings() {
         updateRadioButtons()
         binding.switchR18.isChecked = settingsManager.r18Enabled
+        binding.switchDebug.isChecked = settingsManager.debugMode
     }
 
     private fun updateRadioButtons() {
