@@ -27,9 +27,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        binding.toolbar.setNavigationOnClickListener {
-            finish()
-        }
+        binding.toolbar.setNavigationOnClickListener { finish() }
 
         binding.optionUpstream.setOnClickListener {
             settingsManager.useUpstreamApi = true
@@ -48,9 +46,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.switchDebug.setOnCheckedChangeListener { _, isChecked ->
             settingsManager.debugMode = isChecked
             AppLogger.debugMode = isChecked
-            if (!isChecked) {
-                AppLogger.clear()
-            }
+            if (!isChecked) AppLogger.clear()
         }
     }
 
@@ -65,47 +61,40 @@ class SettingsActivity : AppCompatActivity() {
         binding.radioUpstream.isChecked = useUpstream
         binding.radioDownstream.isChecked = !useUpstream
         
-        if (useUpstream) {
-            hideCardWithAnimation(binding.cardR18)
+        animateCard(binding.cardR18, !useUpstream)
+    }
+    
+    private fun animateCard(view: View, show: Boolean) {
+        // 如果状态已经是目标状态，不做任何操作
+        if (show && view.isVisible || !show && !view.isVisible) return
+        
+        view.animate().cancel()
+        
+        if (show) {
+            view.alpha = 0f
+            view.scaleY = 0.8f
+            view.visibility = View.VISIBLE
+            
+            view.animate()
+                .alpha(1f)
+                .scaleY(1f)
+                .setDuration(300)
+                .setInterpolator(android.view.animation.OvershootInterpolator(0.8f))
+                .start()
         } else {
-            showCardWithAnimation(binding.cardR18)
+            view.animate()
+                .alpha(0f)
+                .scaleY(0.8f)
+                .setDuration(200)
+                .setInterpolator(android.view.animation.AccelerateInterpolator())
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        view.visibility = View.GONE
+                        view.alpha = 1f
+                        view.scaleY = 1f
+                    }
+                })
+                .start()
         }
     }
-    
-    private fun showCardWithAnimation(view: View) {
-        if (view.isVisible) return
-        
-        view.animate().cancel()
-        view.alpha = 0f
-        view.scaleY = 0.8f
-        view.visibility = View.VISIBLE
-        
-        view.animate()
-            .alpha(1f)
-            .scaleY(1f)
-            .setDuration(300)
-            .setInterpolator(android.view.animation.OvershootInterpolator(0.8f))
-            .setListener(null)
-            .start()
-    }
-    
-    private fun hideCardWithAnimation(view: View) {
-        if (!view.isVisible) return
-        
-        view.animate().cancel()
-        view.animate()
-            .alpha(0f)
-            .scaleY(0.8f)
-            .setDuration(200)
-            .setInterpolator(android.view.animation.AccelerateInterpolator())
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    view.visibility = View.GONE
-                    view.alpha = 1f
-                    view.scaleY = 1f
-                }
-            })
-            .start()
-    }
-
 }

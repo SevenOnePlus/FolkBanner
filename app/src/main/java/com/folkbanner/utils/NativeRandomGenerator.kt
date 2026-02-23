@@ -39,23 +39,38 @@ object NativeRandomGenerator {
         return try {
             nativeDecodeBase64(input)
         } catch (_: UnsatisfiedLinkError) {
-            fallbackDecodeBase64(input)
+            decodeBase64Fallback(input)
         } catch (_: Exception) {
-            fallbackDecodeBase64(input)
+            decodeBase64Fallback(input)
         }
     }
 
-    private fun fallbackDecodeBase64(input: String): ByteArray? {
+    private fun decodeBase64Fallback(input: String): ByteArray? {
         return try {
-            var cleanInput = input
-            val commaIndex = input.indexOf(',')
-            if (commaIndex >= 0) {
-                cleanInput = input.substring(commaIndex + 1)
-            }
-            cleanInput = cleanInput.trim()
+            val cleanInput = cleanBase64Input(input)
             Base64.decode(cleanInput, Base64.DEFAULT)
         } catch (_: Exception) {
             null
+        }
+    }
+
+    /**
+     * 移除 data URI 前缀，只保留 Base64 数据部分
+     */
+    fun cleanBase64Input(input: String): String {
+        val trimmed = input.trim()
+        val base64Marker = ";base64,"
+        val markerIndex = trimmed.indexOf(base64Marker)
+        
+        return if (markerIndex >= 0) {
+            trimmed.substring(markerIndex + base64Marker.length)
+        } else {
+            val commaIndex = trimmed.indexOf(',')
+            if (commaIndex >= 0 && commaIndex < 100) {
+                trimmed.substring(commaIndex + 1)
+            } else {
+                trimmed
+            }
         }
     }
 

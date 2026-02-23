@@ -70,25 +70,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        binding.fabRefresh.setOnClickListener { 
-            if (!isNetworkAvailable()) {
-                showNetworkError()
-                return@setOnClickListener
-            }
-            viewModel.refreshWallpaper() 
-        }
-
-        binding.fabDownload.setOnClickListener {
-            if (!isNetworkAvailable()) {
-                showNetworkError()
-                return@setOnClickListener
-            }
-            viewModel.currentWallpaper.value?.let { downloadWallpaper(it.url) }
-        }
-
-        binding.btnSettings.setOnClickListener { 
-            startActivity(Intent(this, SettingsActivity::class.java)) 
-        }
+        binding.fabRefresh.setOnClickListener { runWithNetwork { viewModel.refreshWallpaper() } }
+        binding.fabDownload.setOnClickListener { runWithNetwork { downloadCurrentWallpaper() } }
+        binding.btnSettings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+        binding.btnRetry.setOnClickListener { viewModel.loadApis() }
+        binding.btnAbout.setOnClickListener { showAboutDialog() }
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -97,9 +83,6 @@ class MainActivity : AppCompatActivity() {
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
-
-        binding.btnRetry.setOnClickListener { viewModel.loadApis() }
-        binding.btnAbout.setOnClickListener { showAboutDialog() }
     }
 
     private fun isNetworkAvailable(): Boolean {
@@ -108,6 +91,10 @@ class MainActivity : AppCompatActivity() {
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    private fun runWithNetwork(action: () -> Unit) {
+        if (isNetworkAvailable()) action() else showNetworkError()
     }
 
     private fun showNetworkError() {
@@ -139,21 +126,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel.error.observe(this) { error ->
-            if (error != null) {
-                binding.errorLayout.visibility = View.VISIBLE
-                binding.imageView.visibility = View.GONE
-            } else {
-                binding.errorLayout.visibility = View.GONE
-                binding.imageView.visibility = View.VISIBLE
-            }
+            val hasError = error != null
+            binding.errorLayout.visibility = if (hasError) View.VISIBLE else View.GONE
+            binding.imageView.visibility = if (hasError) View.GONE else View.VISIBLE
         }
 
         AppLogger.logs.observe(this) { logs ->
             tvLog.text = logs
             logContainer.post { logContainer.fullScroll(View.FOCUS_DOWN) }
-            
-            val showLog = settingsManager.debugMode && !settingsManager.useUpstreamApi && logs.isNotEmpty()
-            logContainer.visibility = if (showLog) View.VISIBLE else View.GONE
+            updateLogVisibility(logs.isNotEmpty())
         }
 
         AppLogger.toast.observe(this) { message ->
@@ -167,17 +148,19 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         val currentApiMode = settingsManager.useUpstreamApi
-        
         AppLogger.debugMode = settingsManager.debugMode
-        
-        val showLog = settingsManager.debugMode && !currentApiMode
-        logContainer.visibility = if (showLog) View.VISIBLE else View.GONE
+        updateLogVisibility()
         
         if (currentApiMode != lastApiMode) {
             lastApiMode = currentApiMode
             viewModel.loadApis()
         }
         binding.tabLayout.visibility = if (currentApiMode) View.VISIBLE else View.GONE
+    }
+
+    private fun updateLogVisibility(hasLogs: Boolean = true) {
+        val showLog = settingsManager.debugMode && !settingsManager.useUpstreamApi && hasLogs
+        logContainer.visibility = if (showLog) View.VISIBLE else View.GONE
     }
 
     private fun loadImage(url: String) {
@@ -188,6 +171,10 @@ class MainActivity : AppCompatActivity() {
                 .crossfade(true)
                 .build()
         )
+    }
+
+    private fun downloadCurrentWallpaper() {
+        viewModel.currentWallpaper.value?.let { downloadWallpaper(it.url) }
     }
 
     private fun downloadWallpaper(url: String) {
@@ -202,11 +189,8 @@ class MainActivity : AppCompatActivity() {
                 DownloadManager.downloadImage(this@MainActivity, url, imageLoader)
             }
 
-            Snackbar.make(
-                binding.root,
-                getString(if (success) R.string.download_success else R.string.download_failed),
-                Snackbar.LENGTH_SHORT
-            ).show()
+            val messageRes = if (success) R.string.download_success else R.string.download_failed
+            Snackbar.make(binding.root, getString(messageRes), Snackbar.LENGTH_SHORT).show()
             binding.fabDownload.isEnabled = true
         }
     }
@@ -219,8 +203,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.github_url))))
         }
 
-        val avatarView = dialogView.findViewById<ImageView>(R.id.ivAvatar)
-        if (avatarView != null) {
+        dialogView.findViewById<ImageView>(R.id.ivAvatar)?.let { avatarView ->
             imageLoader.enqueue(
                 ImageRequest.Builder(this)
                     .data("https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg")
