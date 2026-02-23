@@ -109,12 +109,13 @@ tasks.register("buildZigNative") {
 
         val sysroot = "$ndkPath/toolchains/llvm/prebuilt/$hostOs/sysroot"
 
-        // Zig 不支持 Android bionic libc，使用 Linux GNU 目标配合 NDK sysroot
+        // Zig 只支持 musl libc，使用 musl 目标格式
+        // 不使用 -lc，让 sysroot 处理库链接
         val targetConfigs = listOf(
-            Triple("thumb-linux-gnueabi", "arm-linux-androideabi", "armeabi-v7a"),
-            Triple("aarch64-linux-gnu", "aarch64-linux-android", "arm64-v8a"),
-            Triple("x86-linux-gnu", "i686-linux-android", "x86"),
-            Triple("x86_64-linux-gnu", "x86_64-linux-android", "x86_64")
+            Triple("thumb-linux-musleabi", "arm-linux-androideabi", "armeabi-v7a"),
+            Triple("aarch64-linux-musl", "aarch64-linux-android", "arm64-v8a"),
+            Triple("x86-linux-musl", "i686-linux-android", "x86"),
+            Triple("x86_64-linux-musl", "x86_64-linux-android", "x86_64")
         )
 
         val optimize = if (project.hasProperty("release")) "ReleaseFast" else "Debug"
@@ -136,10 +137,8 @@ tasks.register("buildZigNative") {
                     "-dynamic",
                     "-fno-entry",
                     "--name", "folkrandom",
-                    "--sysroot", sysroot,
                     "-I$sysroot/usr/include",
                     "-I$sysroot/usr/include/$ndkArchName",
-                    "-lc",
                     "jni_interface.zig",
                     "-femit-bin=${outputDir.absolutePath}/libfolkrandom.so"
                 )
