@@ -2,6 +2,7 @@ package com.folkbanner.data.remote
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Base64
 import com.folkbanner.utils.NativeRandomGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,6 +18,7 @@ class DownstreamApiService {
         private const val GITHUB_API_R18 = "https://api.github.com/repos/SevenOnePlus/Banner-Down/contents/R18+"
         private const val GITHUB_RAW = "https://raw.githubusercontent.com/SevenOnePlus/Banner-Down/main"
         private const val CACHE_DURATION_MS = 5 * 60 * 1000L
+        private const val DATA_URI_PREFIX_MAX_LENGTH = 100
         
         private val client = OkHttpClient.Builder()
             .followRedirects(true)
@@ -25,6 +27,8 @@ class DownstreamApiService {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
             
+        private val base64CleanRegex = Regex("[\\s\\r\\n]")
+        
         @Volatile
         private var cachedNormalFiles: List<NormalFile>? = null
         @Volatile
@@ -50,16 +54,43 @@ class DownstreamApiService {
         val file = files[index - 1]
         
         val base64Content = downloadFileContent(file.downloadUrl)
-        val cleanBase64 = NativeRandomGenerator.cleanBase64Input(base64Content)
+        val cleanBase64 = cleanBase64String(base64Content)
         
-        val imageData = NativeRandomGenerator.decodeBase64(cleanBase64)
-            ?: throw Exception("Failed to decode base64")
+        var imageData: ByteArray? = null
+        
+        try {
+            imageData = NativeRandomGenerator.decodeBase64(cleanBase64)
+        } catch (_: Exception) { }
+        
+        if (imageData == null || imageData.isEmpty()) {
+            try {
+                imageData = Base64.decode(cleanBase64, Base64.DEFAULT)
+            } catch (_: Exception) { }
+        }
+        
+        if (imageData == null || imageData.isEmpty()) {
+            throw Exception("Failed to decode base64")
+        }
         
         val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-            ?: BitmapFactory.decodeByteArray(imageData, 0, imageData.size, BitmapFactory.Options().apply {
-                inPreferredConfig = Bitmap.Config.ARGB_8888
-            })
-            ?: throw Exception("Failed to decode image")
+        
+        if (bitmap == null) {
+            val options = BitmapFactory.Options()
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888
+            val bitmap2 = BitmapFactory.decodeByteArray(imageData, 0, imageData.size, options)
+            
+            if (bitmap2 != null) {
+                return@withContext RandomFileResult(
+                    index = index,
+                    total = files.size,
+                    filename = file.name,
+                    url = file.downloadUrl,
+                    bitmap = bitmap2
+                )
+            }
+            
+            throw Exception("Failed to decode image")
+        }
         
         RandomFileResult(
             index = index,
@@ -148,6 +179,23 @@ class DownstreamApiService {
                 } else null
             }
         }
+    }
+    
+    private fun cleanBase64String(input: String): String {
+        var result = input.trim()
+        
+        val base64Marker = ";base64,"
+        val markerIndex = result.indexOf(base64Marker)
+        if (markerIndex >= 0) {
+            result = result.substring(markerIndex + base64Marker.length)
+        } else {
+            val commaIndex = result.indexOf(',')
+            if (commaIndex >= 0 && commaIndex < DATA_URI_PREFIX_MAX_LENGTH) {
+                result = result.substring(commaIndex + 1)
+            }
+        }
+        
+        return base64CleanRegex.replace(result, "")
     }
     
     private fun downloadFileContent(url: String): String {

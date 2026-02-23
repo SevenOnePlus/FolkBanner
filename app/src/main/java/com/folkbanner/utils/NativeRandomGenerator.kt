@@ -36,34 +36,24 @@ object NativeRandomGenerator {
     }
 
     fun decodeBase64(input: String): ByteArray? {
-        val cleanInput = cleanBase64Input(input)
         return try {
-            nativeDecodeBase64(cleanInput)
+            nativeDecodeBase64(input)
+        } catch (_: UnsatisfiedLinkError) {
+            fallbackDecodeBase64(input)
         } catch (_: Exception) {
-            tryDecodeBase64(cleanInput)
+            fallbackDecodeBase64(input)
         }
     }
 
-    fun cleanBase64Input(input: String): String {
-        var result = input.trim()
-        
-        val base64Marker = ";base64,"
-        val markerIndex = result.indexOf(base64Marker)
-        if (markerIndex >= 0) {
-            result = result.substring(markerIndex + base64Marker.length)
-        } else {
-            val commaIndex = result.indexOf(',')
-            if (commaIndex >= 0 && commaIndex < 100) {
-                result = result.substring(commaIndex + 1)
-            }
-        }
-        
-        return result.replace(Regex("[\\s\\r\\n]"), "")
-    }
-
-    private fun tryDecodeBase64(input: String): ByteArray? {
+    private fun fallbackDecodeBase64(input: String): ByteArray? {
         return try {
-            Base64.decode(input, Base64.DEFAULT)
+            var cleanInput = input
+            val commaIndex = input.indexOf(',')
+            if (commaIndex >= 0) {
+                cleanInput = input.substring(commaIndex + 1)
+            }
+            cleanInput = cleanInput.trim()
+            Base64.decode(cleanInput, Base64.DEFAULT)
         } catch (_: Exception) {
             null
         }
