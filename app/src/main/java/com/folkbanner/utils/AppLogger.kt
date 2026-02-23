@@ -15,24 +15,18 @@ object AppLogger {
     val toast: LiveData<String?> = _toast
     
     private val logLock = Any()
-    private val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    private val dateFormat by lazy { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     
     var debugMode = false
 
     fun log(message: String) {
         if (!debugMode) return
         
-        val timestamp: String
-        val logEntry: String
-        val currentLogs: String
-        
-        synchronized(logLock) {
-            timestamp = dateFormat.format(Date())
-            logEntry = "[$timestamp] $message"
-            currentLogs = _logs.value ?: ""
+        val logEntry = synchronized(logLock) {
+            "[${dateFormat.format(Date())}] $message"
         }
         
-        _logs.postValue(currentLogs + logEntry + "\n")
+        _logs.postValue((_logs.value ?: "") + logEntry + "\n")
     }
 
     fun toast(message: String) {
@@ -44,8 +38,6 @@ object AppLogger {
     }
 
     fun clear() {
-        synchronized(logLock) {
-            _logs.postValue("")
-        }
+        _logs.postValue("")
     }
 }

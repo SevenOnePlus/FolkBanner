@@ -36,10 +36,6 @@
             android:name=".SettingsActivity"
             android:theme="@style/Theme.FolkBanner" />
             
-        <activity
-            android:name=".PreviewActivity"
-            android:theme="@style/Theme.FolkBanner.Preview" />
-            
     </application>
 
 </manifest>

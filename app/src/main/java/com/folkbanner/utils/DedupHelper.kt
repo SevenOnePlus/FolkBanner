@@ -1,10 +1,8 @@
 package com.folkbanner.utils
 
-import java.util.Collections
-
 class DedupHelper {
     
-    private val urlSet = Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
+    private val urlSet = HashSet<String>()
     
     fun isDuplicate(url: String): Boolean = urlSet.contains(url)
     

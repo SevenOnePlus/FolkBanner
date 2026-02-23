@@ -51,7 +51,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             
             if (isUpstream) {
                 try {
-                    val apiList = repository.loadApis(Constants.UPSTREAM_API_URL)
+                    val apiList = repository.loadApis(Constants.API_URL)
                     _apis.value = apiList
                     if (apiList.isNotEmpty()) {
                         AppLogger.log("加载到 ${apiList.size} 个API")
