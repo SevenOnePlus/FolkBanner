@@ -83,14 +83,22 @@ tasks.register("buildZigNative") {
     outputs.dir(jniLibsDir)
 
     doLast {
-        // 在执行阶段获取 NDK 路径，避免配置阶段访问未安装的 NDK
-        val ndkPath = project.extensions.getByType<com.android.build.gradle.BaseExtension>().ndkDirectory?.absolutePath 
-            ?: System.getenv("ANDROID_NDK_HOME") 
-            ?: ""
+        // 优先使用环境变量 ANDROID_NDK_HOME
+        var ndkPath = System.getenv("ANDROID_NDK_HOME") ?: ""
+        
+        // 如果环境变量为空，尝试从 Android 扩展获取
+        if (ndkPath.isEmpty() || !File(ndkPath).exists()) {
+            ndkPath = project.extensions.getByType<com.android.build.gradle.BaseExtension>().ndkDirectory?.absolutePath ?: ""
+        }
+        
         val zigPath = System.getenv("ZIG_PATH") ?: "zig"
 
+        println("DEBUG: NDK path = $ndkPath")
+        println("DEBUG: NDK exists = ${File(ndkPath).exists()}")
+        println("DEBUG: ANDROID_NDK_HOME env = ${System.getenv("ANDROID_NDK_HOME")}")
+
         if (ndkPath.isEmpty() || !File(ndkPath).exists()) {
-            throw GradleException("NDK path not found")
+            throw GradleException("NDK is not installed. ANDROID_NDK_HOME: ${System.getenv("ANDROID_NDK_HOME")}, ndkDirectory: ${project.extensions.getByType<com.android.build.gradle.BaseExtension>().ndkDirectory?.absolutePath}")
         }
 
         val hostOs = when {
