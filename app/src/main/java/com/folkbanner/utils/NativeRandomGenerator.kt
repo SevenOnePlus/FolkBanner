@@ -40,18 +40,13 @@ object NativeRandomGenerator {
         return try {
             nativeDecodeBase64(cleanInput)
         } catch (_: Exception) {
-            // 回退到 Android Base64
             tryDecodeBase64(cleanInput)
         }
     }
 
-    /**
-     * 清理 Base64 输入，移除 data URI 前缀和空白字符
-     */
     fun cleanBase64Input(input: String): String {
         var result = input.trim()
         
-        // 移除 data URI 前缀 (如 "data:image/png;base64,")
         val base64Marker = ";base64,"
         val markerIndex = result.indexOf(base64Marker)
         if (markerIndex >= 0) {
